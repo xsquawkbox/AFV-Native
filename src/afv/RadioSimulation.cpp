@@ -99,9 +99,9 @@ void RadioSimulation::putAudioFrame(const audio::SampleType *bufferIn)
     {
         auto *b = bufferIn;
         int i = audio::frameSizeSamples - 1;
-        audio::SampleType peak = abs(*(b++));
+        audio::SampleType peak = fabs(*(b++));
         while (i-- > 0) {
-            peak = std::max(peak, abs(*(b++)));
+            peak = std::max<audio::SampleType>(peak, fabs(*(b++)));
         }
         mVuMeter.addDatum(20.0 * log10(peak));
     }

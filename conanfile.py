@@ -20,7 +20,7 @@ class AfvNativeConan(ConanFile):
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,
-        "libevent:with_openssl": True,
+        "libevent:with_openssl": False,
         "rtaudio*:with_directsound": True,
         "rtaudio*:with_pulseaudio": True,
     }
@@ -28,7 +28,7 @@ class AfvNativeConan(ConanFile):
     requires = [
         "msgpack/3.2.0@bincrafters/stable",
         "jsonformoderncpp/3.7.0@vthiery/stable",
-        "OpenSSL/1.1.1c@conan/stable",
+        "openssl/1.1.1d",
         "libcurl/7.66.0@bincrafters/stable",
         "libevent/2.1.11@bincrafters/stable",
         "portaudio/v190600.20161030@bincrafters/stable",
