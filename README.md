@@ -1,5 +1,29 @@
 # AFV-native
 
+AFV-Native is a portable-(ish) implementation of the Audio for VATSIM client protocol.
+
+If you are not a client developer, this is not of interest to you and you should refer to the 
+[approved software list](https://www.vatsim.net/documents/approved-software) to find a client
+for your needs.
+
+
+# Goals
+
+AFV-Native has the following goals:
+
+* Licensing must remain compatible with XSquawkBox (which is effectively propritary and 
+  requires static linking for distribution/support reasons, so GPL-like licenses are not
+  acceptable).  The BSD 3-Clause has been chosen for AFV-Native itself.
+
+* Must work on the big three: Windows, Linux and MacOS.
+
+* Must work fairly uniformly on the big three.
+
+* Only needs to work on architecutres where there's a meaningful piece of software 
+  to integrate with - that is, a pilot or ATC simulator and client.
+
+* Must have a reasonably straight-forward API for client developers.
+
 ## Building AFV-native
 
 ### Prerequisites
