@@ -53,10 +53,10 @@ class TestClient
 
     ImFontAtlas mFontAtlas;
 
-    std::string mAFVAPIServer = "http://runway:61000";
-    std::string mAFVUsername = "1234";
-    std::string mAFVPassword = "aSecret";
-    std::string mAFVCallsign = "VH-SEP";
+    std::string mAFVAPIServer = "http://localhost:61000";
+    std::string mAFVUsername = "";
+    std::string mAFVPassword = "";
+    std::string mAFVCallsign = "";
 
 
     double mClientLatitude = 51.1;
