@@ -153,10 +153,9 @@ EventTransferManager::timerCallback(CURLM *multi, long timeout_ms)
             mTimerEvent = evtimer_new(mEvBase, EventTransferManager::evTimerCallback, this);
         }
 
-        struct timeval tv = {
-            timeout_ms / 1000,
-            (timeout_ms % 1000) * 1000,
-        };
+        struct timeval tv = {0,0};
+	tv.tv_sec = timeout_ms / 1000;
+        tv.tv_usec = (timeout_ms % 1000) * 1000;
         event_add(mTimerEvent, &tv);
     }
     return 0;
