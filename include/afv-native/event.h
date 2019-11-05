@@ -46,6 +46,7 @@ namespace afv_native {
         PttOpen,
         PttClosed,
         StationAliasesUpdated,
+        AudioError,
     };
 }
 

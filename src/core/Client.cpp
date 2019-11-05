@@ -249,7 +249,12 @@ void Client::startAudio()
     }
     mAudioDevice->setSink(mRadioSim);
     mAudioDevice->setSource(mRadioSim);
-    mAudioDevice->open();
+    if (!mAudioDevice->open()) {
+        LOG("afv::Client", "Unable to open audio device.");
+        stopAudio();
+        mVoiceSession.Disconnect(true);
+        ClientEventCallback.invokeAll(ClientEventType::AudioError, nullptr);
+    };
 }
 
 void Client::stopAudio()

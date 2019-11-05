@@ -90,6 +90,11 @@ namespace afv_native {
             static std::map<Api,std::string> getAPIs();
             static std::vector<std::string> getInputDevicesForApi(Api api);
             static std::vector<std::string> getOutputDevicesForApi(Api api);
+        protected:
+            static bool isAbleToOpen(int deviceId, int forInput=false);
+            static std::map<int,const PaDeviceInfo *> getCompatibleInputDevicesForApi(AudioDevice::Api api);
+            static std::map<int,const PaDeviceInfo *> getCompatibleOutputDevicesForApi(AudioDevice::Api api);
+
         };
     }
 }
