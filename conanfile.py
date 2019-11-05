@@ -6,7 +6,7 @@ class AfvNativeConan(ConanFile):
     version = "0.9.0"
     license = "3-Clause BSD"
     author = "Chris Collins <kuroneko@sysadninjas.net>"
-    url = "https://github.com/kuroneko/AFV-Native"
+    url = "https://github.com/xsquawkbox/AFV-Native"
     description = "Portable, Native Implementation of the AFV Interface"
     topics = ("vatsim", "afv", "voice", "portable")
     settings = "os", "compiler", "build_type", "arch"
