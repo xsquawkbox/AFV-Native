@@ -103,7 +103,7 @@ add_library(afv_native
 		)
 target_link_libraries(afv_native
         PUBLIC
-        CONAN_PKG::openssl
+        CONAN_PKG::OpenSSL
         CONAN_PKG::msgpack
         CONAN_PKG::jsonformoderncpp
         CONAN_PKG::libcurl
