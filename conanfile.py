@@ -3,7 +3,7 @@ from conans import ConanFile, CMake, tools
 
 class AfvNativeConan(ConanFile):
     name = "AFV-Native"
-    version = "0.9.0"
+    version = "0.9.1"
     license = "3-Clause BSD"
     author = "Chris Collins <kuroneko@sysadninjas.net>"
     url = "https://github.com/xsquawkbox/AFV-Native"
