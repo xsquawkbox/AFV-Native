@@ -207,7 +207,7 @@ int AudioDevice::audioCallback(
             }
         } else {
             // if there's no source, but there is an output buffer, zero it to avoid making horrible buzzing sounds.
-            ::memset(outputBuffer, 0, sizeof(nFrames) * sizeof(SampleType));
+            ::memset(outputBuffer, 0, nFrames * sizeof(SampleType));
         }
     }
     return 0;
