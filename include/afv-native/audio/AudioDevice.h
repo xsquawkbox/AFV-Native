@@ -75,6 +75,18 @@ namespace afv_native {
 
         public:
             typedef unsigned int Api;
+
+            struct DeviceInfo {
+                std::string name;
+                int maxInputChannels;
+                int maxOutputChannels;
+                double lowInputLatency;
+                double lowOutputLatency;
+                double defaultSamplingRate;
+
+                explicit DeviceInfo(const PaDeviceInfo *src);
+            };
+
             explicit AudioDevice(
                     const std::string &userStreamName,
                     const std::string &outputDeviceName,
@@ -92,8 +104,8 @@ namespace afv_native {
             static std::vector<std::string> getOutputDevicesForApi(Api api);
         protected:
             static bool isAbleToOpen(int deviceId, int forInput=false);
-            static std::map<int,const PaDeviceInfo *> getCompatibleInputDevicesForApi(AudioDevice::Api api);
-            static std::map<int,const PaDeviceInfo *> getCompatibleOutputDevicesForApi(AudioDevice::Api api);
+            static std::map<int,DeviceInfo> getCompatibleInputDevicesForApi(AudioDevice::Api api);
+            static std::map<int,DeviceInfo> getCompatibleOutputDevicesForApi(AudioDevice::Api api);
 
         };
     }

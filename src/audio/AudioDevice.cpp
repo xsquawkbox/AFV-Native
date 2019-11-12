@@ -118,12 +118,12 @@ bool AudioDevice::getDeviceForName(const string &deviceName, bool forInput, PaSt
 
     if (!allDevices.empty()) {
         for (const auto &devicePair: allDevices) {
-            if (string(devicePair.second->name) == deviceName) {
+            if (devicePair.second.name == deviceName) {
                 deviceParamOut.device = devicePair.first;
                 deviceParamOut.channelCount = 1;
                 deviceParamOut.sampleFormat = paFloat32;
-                deviceParamOut.suggestedLatency = forInput ? devicePair.second->defaultLowInputLatency
-                                                           : devicePair.second->defaultLowOutputLatency;
+                deviceParamOut.suggestedLatency = forInput ? devicePair.second.lowInputLatency
+                                                           : devicePair.second.lowOutputLatency;
                 deviceParamOut.hostApiSpecificStreamInfo = nullptr;
                 return true;
             }
@@ -139,20 +139,20 @@ bool AudioDevice::getDeviceForName(const string &deviceName, bool forInput, PaSt
         deviceParamOut.device = defaultDev->first;
         deviceParamOut.channelCount = 1;
         deviceParamOut.sampleFormat = paFloat32;
-        deviceParamOut.suggestedLatency = forInput ? defaultDev->second->defaultLowInputLatency
-                                                   : defaultDev->second->defaultLowOutputLatency;
+        deviceParamOut.suggestedLatency = forInput ? defaultDev->second.lowInputLatency
+                                                   : defaultDev->second.lowOutputLatency;
         deviceParamOut.hostApiSpecificStreamInfo = nullptr;
         return true;
     }
     // if the default device doesn't work, pull the first device that will.
     auto firstDev = allDevices.begin();
     if (firstDev != allDevices.end()) {
-        LOG("AudioDevice", "Default can't handle our format.  Using \"%s\" instead.", firstDev->second->name);
+        LOG("AudioDevice", "Default can't handle our format.  Using \"%s\" instead.", firstDev->second.name.c_str());
         deviceParamOut.device = firstDev->first;
         deviceParamOut.channelCount = 1;
         deviceParamOut.sampleFormat = paFloat32;
-        deviceParamOut.suggestedLatency = forInput ? firstDev->second->defaultLowInputLatency
-                                                   : firstDev->second->defaultLowOutputLatency;
+        deviceParamOut.suggestedLatency = forInput ? firstDev->second.lowInputLatency
+                                                   : firstDev->second.lowOutputLatency;
         deviceParamOut.hostApiSpecificStreamInfo = nullptr;
         return true;
     }
@@ -251,13 +251,12 @@ std::map<AudioDevice::Api, std::string> AudioDevice::getAPIs()
     return std::move(apiList);
 }
 
-std::map<int,const PaDeviceInfo *> AudioDevice::getCompatibleInputDevicesForApi(AudioDevice::Api api)
+std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleInputDevicesForApi(AudioDevice::Api api)
 {
-    std::map<int,const PaDeviceInfo *> deviceList;
+    std::map<int,AudioDevice::DeviceInfo> deviceList;
     auto rv = Pa_Initialize();
     if (rv == paNoError) {
         auto apiInfo = Pa_GetHostApiInfo(api);
-
         for (unsigned i = 0; i < apiInfo->deviceCount; i++) {
             auto devId = Pa_HostApiDeviceIndexToDeviceIndex(api, i);
             if (devId < 0) {
@@ -273,13 +272,12 @@ std::map<int,const PaDeviceInfo *> AudioDevice::getCompatibleInputDevicesForApi(
     return std::move(deviceList);
 }
 
-std::map<int,const PaDeviceInfo *> AudioDevice::getCompatibleOutputDevicesForApi(AudioDevice::Api api)
+std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesForApi(AudioDevice::Api api)
 {
-    std::map<int,const PaDeviceInfo *> deviceList;
+    std::map<int,DeviceInfo> deviceList;
     auto rv = Pa_Initialize();
     if (rv == paNoError) {
         auto apiInfo = Pa_GetHostApiInfo(api);
-
         for (unsigned i = 0; i < apiInfo->deviceCount; i++) {
             auto devId = Pa_HostApiDeviceIndexToDeviceIndex(api, i);
             if (devId < 0) {
@@ -301,8 +299,9 @@ std::vector<std::string> AudioDevice::getInputDevicesForApi(AudioDevice::Api api
     std::vector<std::string> deviceList;
 
     auto apiInputDevs = getCompatibleInputDevicesForApi(api);
+    deviceList.reserve(apiInputDevs.size());
     for (const auto &apiPair: apiInputDevs) {
-        deviceList.emplace_back(apiPair.second->name);
+        deviceList.emplace_back(apiPair.second.name);
     }
     return std::move(deviceList);
 }
@@ -312,8 +311,9 @@ std::vector<std::string> AudioDevice::getOutputDevicesForApi(AudioDevice::Api ap
     std::vector<std::string> deviceList;
 
     auto apiOutputDevs = getCompatibleOutputDevicesForApi(api);
+    deviceList.reserve(apiOutputDevs.size());
     for (const auto &apiPair: apiOutputDevs) {
-        deviceList.emplace_back(apiPair.second->name);
+        deviceList.emplace_back(apiPair.second.name);
     }
     return std::move(deviceList);
 }
@@ -352,3 +352,12 @@ bool AudioDevice::isAbleToOpen(int deviceId, int forInput) {
     return false;
 }
 
+AudioDevice::DeviceInfo::DeviceInfo(const PaDeviceInfo *src):
+    name(src->name),
+    maxInputChannels(src->maxInputChannels),
+    maxOutputChannels(src->maxOutputChannels),
+    lowInputLatency(src->defaultLowInputLatency),
+    lowOutputLatency(src->defaultLowOutputLatency),
+    defaultSamplingRate(src->defaultSampleRate)
+{
+}
