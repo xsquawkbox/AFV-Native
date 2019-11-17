@@ -1,9 +1,8 @@
 from conans import ConanFile, CMake, tools
 
-
 class AfvNativeConan(ConanFile):
     name = "AFV-Native"
-    version = "0.9.1"
+    version = "0.9.2"
     license = "3-Clause BSD"
     author = "Chris Collins <kuroneko@sysadninjas.net>"
     url = "https://github.com/xsquawkbox/AFV-Native"
@@ -88,4 +87,3 @@ class AfvNativeConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["afv_native"]
-
