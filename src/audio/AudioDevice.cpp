@@ -285,7 +285,7 @@ std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesFor
             }
             if (isAbleToOpen(devId, false)) {
                 const auto *devInfo = Pa_GetDeviceInfo(devId);
-                deviceList.emplace(devId, devInfo);
+                deviceList.emplace(devId, DeviceInfo(devInfo));
             }
         }
         Pa_Terminate();
