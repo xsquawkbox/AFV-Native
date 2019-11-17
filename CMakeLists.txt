@@ -3,6 +3,15 @@ project(afv_native LANGUAGES CXX)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+if(MSVC)
+	if(NOT DEFINED CONAN_LINK_RUNTIME AND DEFINED CONAN_SETTINGS_COMPILER_RUNTIME)
+		message(WARNING "Forcing MSVC runtime based on conan profile")
+		# this means Conan is not running the build, so we need to fix our linker flags ourself.... although we can probably cheat...
+		set(CONAN_LINK_RUNTIME "/${CONAN_SETTINGS_COMPILER_RUNTIME}")
+		conan_set_vs_runtime()
+	endif()
+endif(MSVC)
+
 set(CMAKE_CXX_STANDARD 14)
 enable_testing()
 
