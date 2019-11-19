@@ -79,11 +79,11 @@ class TestClient
     std::shared_ptr<afv_native::Client> mClient;
 
     std::map<afv_native::audio::AudioDevice::Api,std::string> mAudioProviders;
-    std::vector<std::string> mInputDevices;
-    std::vector<std::string> mOutputDevices;
+    std::map<int,afv_native::audio::AudioDevice::DeviceInfo> mInputDevices;
+    std::map<int,afv_native::audio::AudioDevice::DeviceInfo> mOutputDevices;
     afv_native::audio::AudioDevice::Api mAudioApi;
-    std::string mInputDevice;
-    std::string mOutputDevice;
+    int mInputDevice;
+    int mOutputDevice;
 
     std::string nameForAudioApi(afv_native::audio::AudioDevice::Api apiNum);
     void setAudioApi(afv_native::audio::AudioDevice::Api apiNum);

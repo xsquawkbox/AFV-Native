@@ -117,7 +117,7 @@ target_link_libraries(afv_native
         CONAN_PKG::jsonformoderncpp
         CONAN_PKG::libcurl
         CONAN_PKG::libevent
-        CONAN_PKG::portaudio
+        CONAN_PKG::libsoundio
         CONAN_PKG::libopus
 		CONAN_PKG::speexdsp)
 target_include_directories(afv_native

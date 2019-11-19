@@ -20,8 +20,9 @@ class AfvNativeConan(ConanFile):
         "*:fPIC": True,
         "libcurl:with_openssl": True,
         "libevent:with_openssl": False,
-        "rtaudio*:with_directsound": True,
-        "rtaudio*:with_pulseaudio": True,
+        "libsoundio*:enable_jack": False,
+        "libsoundio*:enable_pulseaudio": True,
+        "libsoundio*:enable_alsa": True,
     }
     generators = "cmake"
     requires = [
@@ -30,9 +31,9 @@ class AfvNativeConan(ConanFile):
         "openssl/1.1.1d",
         "libcurl/7.66.0@bincrafters/stable",
         "libevent/2.1.11@bincrafters/stable",
-        "portaudio/v190600.20161030@bincrafters/stable",
         "libopus/1.3.1@xsquawkbox/testing",
         "speexdsp/1.2.0@xsquawkbox/devel",
+        "libsoundio/2.0.0@xsquawkbox/devel",
     ]
     build_requires = [
         "gtest/1.8.1@bincrafters/stable",

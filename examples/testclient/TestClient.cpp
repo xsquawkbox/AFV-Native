@@ -54,15 +54,14 @@ const char *glsl_version = "#version 130";
 TestClient::TestClient(
         SDL_Window *win,
         SDL_GLContext glContext,
-        struct event_base *eventBase):
+        struct event_base *eventBase) :
         mWindow(win),
         mContext(glContext),
         mEventBase(eventBase),
         mShouldQuit(false),
         mShowDemo(false),
         mFontAtlas(),
-        mClient()
-{
+        mClient() {
     mClient = std::make_shared<afv_native::Client>(
             mEventBase,
             ".",
@@ -94,8 +93,7 @@ TestClient::TestClient(
 }
 
 void
-TestClient::drawFrame()
-{
+TestClient::drawFrame() {
     if (SDL_GL_MakeCurrent(mWindow, mContext)) {
         std::cerr << "Couldn't make GL context current: " << SDL_GetError() << std::endl;
         exit(1);
@@ -155,24 +153,26 @@ TestClient::drawFrame()
             }
             ImGui::EndCombo();
         }
-        if (ImGui::BeginCombo("Input Device", mInputDevice.c_str())) {
-            if (ImGui::Selectable("Default", mInputDevice.empty())) {
-                mInputDevice = "";
-            }
-            for (const auto &item: mInputDevices) {
-                if (ImGui::Selectable(item.c_str(), mInputDevice == item)) {
-                    mInputDevice = item;
+        const char *currentInputDevice = "None Selected";
+        if (mInputDevices.find(mInputDevice) != mInputDevices.end()) {
+            currentInputDevice = mInputDevices.at(mInputDevice).name.c_str();
+        }
+        if (ImGui::BeginCombo("Input Device", currentInputDevice)) {
+            for (const auto &pair: mInputDevices) {
+                if (ImGui::Selectable(pair.second.name.c_str(), mInputDevice == pair.first)) {
+                    mInputDevice = pair.first;
                 }
             }
             ImGui::EndCombo();
         }
-        if (ImGui::BeginCombo("Output Device", mOutputDevice.c_str())) {
-            if (ImGui::Selectable("Default", mInputDevice.empty())) {
-                mOutputDevice = "";
-            }
-            for (const auto &item: mOutputDevices) {
-                if (ImGui::Selectable(item.c_str(), mOutputDevice == item)) {
-                    mOutputDevice = item;
+        const char *currentOutputDevice = "None Selected";
+        if (mOutputDevices.find(mOutputDevice) != mOutputDevices.end()) {
+            currentOutputDevice = mOutputDevices.at(mOutputDevice).name.c_str();
+        }
+        if (ImGui::BeginCombo("Output Device", currentOutputDevice)) {
+            for (const auto &pair: mOutputDevices) {
+                if (ImGui::Selectable(pair.second.name.c_str(), mOutputDevice == pair.first)) {
+                    mOutputDevice = pair.first;
                 }
             }
             ImGui::EndCombo();
@@ -223,14 +223,14 @@ TestClient::drawFrame()
             }
         }
     }
-    if (ImGui::BeginCombo("Transmission Radio", (mTxRadio==0)?"COM1":"COM2")) {
-        if (ImGui::Selectable("COM1", mTxRadio==0)) {
+    if (ImGui::BeginCombo("Transmission Radio", (mTxRadio == 0) ? "COM1" : "COM2")) {
+        if (ImGui::Selectable("COM1", mTxRadio == 0)) {
             mTxRadio = 0;
             if (mClient) {
                 mClient->setTxRadio(mTxRadio);
             }
         }
-        if (ImGui::Selectable("COM2", mTxRadio==1)) {
+        if (ImGui::Selectable("COM2", mTxRadio == 1)) {
             mTxRadio = 1;
             if (mClient) {
                 mClient->setTxRadio(mTxRadio);
@@ -247,14 +247,18 @@ TestClient::drawFrame()
     const ImVec4 red(1.0, 0.0, 0.0, 1.0), green(0.0, 1.0, 0.0, 1.0);
     ImGui::TextColored(mClient->isAPIConnected() ? green : red, "API Server Connection");
     ImGui::TextColored(mClient->isVoiceConnected() ? green : red, "Voice Server Connection");
-    ImGui::SliderFloat("Input VU", &mVu,-60.0f, 0.0f);
+    ImGui::SliderFloat("Input VU", &mVu, -60.0f, 0.0f);
     ImGui::SliderFloat("Input Peak", &mPeak, -60.0f, 0.0f);
 
     if (!mClient->isVoiceConnected()) {
         if (ImGui::Button("Connect Voice")) {
             mClient->setAudioApi(mAudioApi);
-            mClient->setAudioInputDevice(mInputDevice);
-            mClient->setAudioOutputDevice(mOutputDevice);
+            try {
+                mClient->setAudioInputDevice(mInputDevices.at(mInputDevice).id);
+            } catch (std::out_of_range &) {}
+            try {
+                mClient->setAudioOutputDevice(mOutputDevices.at(mOutputDevice).id);
+            } catch (std::out_of_range &) {}
             mClient->setBaseUrl(mAFVAPIServer);
             mClient->setClientPosition(mClientLatitude, mClientLongitude, mClientAltitudeMSLM, mClientAltitudeAGLM);
             mClient->setRadioState(0, mCom1Freq);
@@ -284,35 +288,32 @@ TestClient::drawFrame()
 }
 
 void
-TestClient::handleInput()
-{
+TestClient::handleInput() {
     SDL_Event thisEvent;
     while (SDL_PollEvent(&thisEvent) != 0) {
         ImGui_ImplSDL2_ProcessEvent(&thisEvent);
         switch (thisEvent.type) {
-        case SDL_QUIT:
-            mShouldQuit = true;
-            break;
-        case SDL_WINDOWEVENT:
-            if (thisEvent.window.event == SDL_WINDOWEVENT_CLOSE &&
-                thisEvent.window.windowID == SDL_GetWindowID(mWindow)) {
+            case SDL_QUIT:
                 mShouldQuit = true;
-            }
-            break;
-        default:
-            break;
+                break;
+            case SDL_WINDOWEVENT:
+                if (thisEvent.window.event == SDL_WINDOWEVENT_CLOSE &&
+                    thisEvent.window.windowID == SDL_GetWindowID(mWindow)) {
+                    mShouldQuit = true;
+                }
+                break;
+            default:
+                break;
         }
     }
 }
 
 bool
-TestClient::shouldQuit() const
-{
+TestClient::shouldQuit() const {
     return mShouldQuit;
 }
 
-void TestClient::guiMainMenu()
-{
+void TestClient::guiMainMenu() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Quit")) {
@@ -328,8 +329,7 @@ void TestClient::guiMainMenu()
     }
 }
 
-std::string TestClient::nameForAudioApi(afv_native::audio::AudioDevice::Api apiNum)
-{
+std::string TestClient::nameForAudioApi(afv_native::audio::AudioDevice::Api apiNum) {
     auto mIter = mAudioProviders.find(apiNum);
     if (mIter == mAudioProviders.end()) {
         if (apiNum == 0) return "UNSPECIFIED (default)";
@@ -338,9 +338,8 @@ std::string TestClient::nameForAudioApi(afv_native::audio::AudioDevice::Api apiN
     return mIter->second;
 }
 
-void TestClient::setAudioApi(afv_native::audio::AudioDevice::Api apiNum)
-{
+void TestClient::setAudioApi(afv_native::audio::AudioDevice::Api apiNum) {
     mAudioApi = apiNum;
-    mInputDevices = afv_native::audio::AudioDevice::getInputDevicesForApi(mAudioApi);
-    mOutputDevices = afv_native::audio::AudioDevice::getOutputDevicesForApi(mAudioApi);
+    mInputDevices = afv_native::audio::AudioDevice::getCompatibleInputDevicesForApi(mAudioApi);
+    mOutputDevices = afv_native::audio::AudioDevice::getCompatibleOutputDevicesForApi(mAudioApi);
 }
