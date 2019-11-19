@@ -48,7 +48,7 @@ AudioDevice::AudioDevice(
         const std::string &userStreamName,
         const std::string &outputDeviceName,
         const std::string &inputDeviceName,
-        AudioDevice::Api audioApi):
+        AudioDevice::Api audioApi) :
         mApi(audioApi),
         mUserStreamName(userStreamName),
         mOutputDeviceName(outputDeviceName),
@@ -59,8 +59,7 @@ AudioDevice::AudioDevice(
         mInputRingBuffer(),
         mOutputRingBuffer(),
         mSink(nullptr),
-        mSource(nullptr)
-{
+        mSource(nullptr) {
     mSoundIO = soundio_create();
     if (mSoundIO == nullptr) {
         LOG("AudioDevice", "libsoundio failed to create context");
@@ -75,7 +74,8 @@ AudioDevice::AudioDevice(
             auto backend = static_cast<enum SoundIoBackend>(mApi);
             auto rv = soundio_connect_backend(mSoundIO, backend);
             if (rv != SoundIoErrorNone) {
-                LOG("AudioDevice", "failed to connect to API %s: %s", soundio_backend_name(backend), soundio_strerror(rv));
+                LOG("AudioDevice", "failed to connect to API %s: %s", soundio_backend_name(backend),
+                    soundio_strerror(rv));
             }
         }
         mInputRingBuffer = soundio_ring_buffer_create(mSoundIO, frameSizeBytes);
@@ -83,8 +83,7 @@ AudioDevice::AudioDevice(
     }
 }
 
-AudioDevice::~AudioDevice()
-{
+AudioDevice::~AudioDevice() {
     if (mSoundIO != nullptr) {
         if (mInputStream != nullptr) {
             soundio_instream_destroy(mInputStream);
@@ -106,11 +105,11 @@ AudioDevice::~AudioDevice()
     }
 }
 
-bool AudioDevice::open()
-{
+bool AudioDevice::open() {
     auto *inputDevice = getInputDeviceForId(mInputDeviceName);
     auto *outputDevice = getOutputDeviceForId(mOutputDeviceName);
     auto *monoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdMono);
+    auto *stereoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdStereo);
 
     if (inputDevice) {
         mInputStream = soundio_instream_create(inputDevice);
@@ -142,9 +141,16 @@ bool AudioDevice::open()
     }
 
     if (outputDevice) {
+        if (!soundio_device_supports_layout(outputDevice, monoLayout)) {
+            mOutputIsStereo = true;
+        } else {
+            mOutputIsStereo = false;
+        }
         mOutputStream = soundio_outstream_create(outputDevice);
         if (mOutputStream) {
-            auto outputLayout = soundio_best_matching_channel_layout(monoLayout, 1, outputDevice->layouts,
+            auto outputLayout = soundio_best_matching_channel_layout(mOutputIsStereo ? stereoLayout : monoLayout,
+                                                                     1,
+                                                                     outputDevice->layouts,
                                                                      outputDevice->layout_count);
             mOutputStream->layout = *outputLayout;
             mOutputStream->format = SoundIoFormatFloat32NE;
@@ -180,12 +186,15 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
     int sampleCount = frames;
     auto rv = soundio_outstream_begin_write(stream, &bufAreas, &sampleCount);
     if (rv == SoundIoErrorNone) {
-        auto *flexPtr = reinterpret_cast<char *>(bufAreas->ptr);
+        char *chPtr[2] = {bufAreas[0].ptr, bufAreas[0].ptr};
+        if (mOutputIsStereo) {
+            chPtr[1] = bufAreas[1].ptr;
+        }
         int samplesWritten = 0;
         while (samplesWritten < sampleCount) {
             ringFrames = soundio_ring_buffer_fill_count(mOutputRingBuffer) / static_cast<int>(sizeof(SampleType));
             if (ringFrames == 0) {
-                auto *sourceFillPtr = reinterpret_cast<SampleType*>(soundio_ring_buffer_write_ptr(mOutputRingBuffer));
+                auto *sourceFillPtr = reinterpret_cast<SampleType *>(soundio_ring_buffer_write_ptr(mOutputRingBuffer));
                 if (mSource) {
                     auto sourcerv = mSource->getAudioFrame(sourceFillPtr);
                     if (sourcerv != SourceStatus::OK) {
@@ -201,9 +210,12 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
             auto *ringBuf = reinterpret_cast<SampleType *>(soundio_ring_buffer_read_ptr(mOutputRingBuffer));
             int ringFramesLeft = ringFrames;
             while (ringFramesLeft > 0 && samplesWritten < sampleCount) {
-                *reinterpret_cast<SampleType *>(flexPtr) = *(ringBuf++);
+                *reinterpret_cast<SampleType *>(chPtr[0]) = *(ringBuf);
+                *reinterpret_cast<SampleType *>(chPtr[1]) = *(ringBuf);
+                ringBuf++;
                 samplesWritten++;
-                flexPtr += bufAreas->step;
+                chPtr[0] += bufAreas->step;
+                chPtr[1] += bufAreas->step;
                 ringFramesLeft--;
             }
             soundio_ring_buffer_advance_read_ptr(mInputRingBuffer,
@@ -216,7 +228,8 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
 }
 
 void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max) {
-    int desiredFrameCount = frameSizeSamples - (soundio_ring_buffer_fill_count(mInputRingBuffer) / static_cast<int>(sizeof(SampleType)));
+    int desiredFrameCount = frameSizeSamples -
+                            (soundio_ring_buffer_fill_count(mInputRingBuffer) / static_cast<int>(sizeof(SampleType)));
     if (desiredFrameCount < frame_count_min) {
         desiredFrameCount = frame_count_min;
     }
@@ -227,7 +240,7 @@ void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_coun
     int sampleCount = desiredFrameCount;
     auto rv = soundio_instream_begin_read(stream, &bufAreas, &sampleCount);
     if (rv == SoundIoErrorNone) {
-        auto *flexPtr = reinterpret_cast<char *>(bufAreas->ptr);
+        auto *flexPtr = bufAreas->ptr;
         int samplesRead = 0;
         int ringFrames;
         while (samplesRead < sampleCount) {
@@ -250,7 +263,8 @@ void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_coun
                 ringFrames++;
             }
             soundio_ring_buffer_advance_write_ptr(mInputRingBuffer,
-                                                 (ringFrames - initialRingFrames) * static_cast<int>(sizeof(SampleType)));
+                                                  (ringFrames - initialRingFrames) *
+                                                  static_cast<int>(sizeof(SampleType)));
         }
         soundio_instream_end_read(stream);
     } else {
@@ -258,18 +272,15 @@ void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_coun
     }
 }
 
-void AudioDevice::setSource(std::shared_ptr<ISampleSource> newSrc)
-{
+void AudioDevice::setSource(std::shared_ptr<ISampleSource> newSrc) {
     mSource = std::move(newSrc);
 }
 
-void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink)
-{
+void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink) {
     mSink = std::move(newSink);
 }
 
-void AudioDevice::close()
-{
+void AudioDevice::close() {
     if (mInputStream) {
         soundio_instream_destroy(mInputStream);
         mInputStream = nullptr;
@@ -280,8 +291,7 @@ void AudioDevice::close()
     }
 }
 
-std::map<AudioDevice::Api, std::string> AudioDevice::getAPIs()
-{
+std::map<AudioDevice::Api, std::string> AudioDevice::getAPIs() {
     std::map<AudioDevice::Api, std::string> apiList;
 
     auto *local_soundIo = soundio_create();
@@ -296,15 +306,14 @@ std::map<AudioDevice::Api, std::string> AudioDevice::getAPIs()
     return std::move(apiList);
 }
 
-std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleInputDevicesForApi(AudioDevice::Api api)
-{
-    std::map<int,AudioDevice::DeviceInfo> deviceList;
+std::map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleInputDevicesForApi(AudioDevice::Api api) {
+    std::map<int, AudioDevice::DeviceInfo> deviceList;
     auto *local_soundIo = soundio_create();
     if (local_soundIo != nullptr) {
-        auto rv = soundio_connect_backend(local_soundIo, static_cast<enum SoundIoBackend>(api));    	
+        auto rv = soundio_connect_backend(local_soundIo, static_cast<enum SoundIoBackend>(api));
         if (rv == SoundIoErrorNone) {
-        	soundio_force_device_scan(local_soundIo);
-        	soundio_flush_events(local_soundIo);
+            soundio_force_device_scan(local_soundIo);
+            soundio_flush_events(local_soundIo);
             int device_count = soundio_input_device_count(local_soundIo);
             for (int i = 0; i < device_count; i++) {
                 auto *device_info = soundio_get_input_device(local_soundIo, i);
@@ -329,15 +338,14 @@ std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleInputDevicesForA
     return std::move(deviceList);
 }
 
-std::map<int,AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesForApi(AudioDevice::Api api)
-{
-    std::map<int,DeviceInfo> deviceList;
+std::map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesForApi(AudioDevice::Api api) {
+    std::map<int, DeviceInfo> deviceList;
     auto *local_soundIo = soundio_create();
     if (local_soundIo != nullptr) {
         auto rv = soundio_connect_backend(local_soundIo, static_cast<enum SoundIoBackend>(api));
         if (rv == SoundIoErrorNone) {
-	    	soundio_force_device_scan(local_soundIo);
-			soundio_flush_events(local_soundIo);
+            soundio_force_device_scan(local_soundIo);
+            soundio_flush_events(local_soundIo);
             int device_count = soundio_output_device_count(local_soundIo);
             for (unsigned i = 0; i < device_count; i++) {
                 auto *device_info = soundio_get_output_device(local_soundIo, i);
@@ -377,15 +385,17 @@ bool AudioDevice::isAbleToOpen(SoundIoDevice *device_info) {
 
     // next channel layouts.
     auto *monoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdMono);
-    if (!soundio_device_supports_layout(device_info, monoLayout)) {
-        LOG("AudioDevice", "device %s - doesn't support monaural audio", device_info->name);
+    auto *stereoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdStereo);
+    if (!soundio_device_supports_layout(device_info, monoLayout) &&
+        !soundio_device_supports_layout(device_info, stereoLayout)) {
+        LOG("AudioDevice", "device %s - doesn't support monaural or stereo audio", device_info->name);
         return false;
     }
     return true;
 }
 
 SoundIoDevice *AudioDevice::getInputDeviceForId(const std::string &deviceId) {
-	soundio_flush_events(mSoundIO);
+    soundio_flush_events(mSoundIO);
     auto device_count = soundio_input_device_count(mSoundIO);
     for (auto i = 0; i < device_count; i++) {
         auto *device = soundio_get_input_device(mSoundIO, i);
@@ -397,7 +407,7 @@ SoundIoDevice *AudioDevice::getInputDeviceForId(const std::string &deviceId) {
 }
 
 SoundIoDevice *AudioDevice::getOutputDeviceForId(const std::string &deviceId) {
-	soundio_flush_events(mSoundIO);
+    soundio_flush_events(mSoundIO);
     auto device_count = soundio_output_device_count(mSoundIO);
     for (auto i = 0; i < device_count; i++) {
         auto *device = soundio_get_output_device(mSoundIO, i);
@@ -428,8 +438,7 @@ void AudioDevice::staticSioWriteCallback(struct SoundIoOutStream *stream, int fr
     thisAd->sioWriteCallback(stream, frame_count_min, frame_count_max);
 }
 
-AudioDevice::DeviceInfo::DeviceInfo(const SoundIoDevice *src):
-    name(src->name),
-    id(src->id)
-{
+AudioDevice::DeviceInfo::DeviceInfo(const SoundIoDevice *src) :
+        name(src->name),
+        id(src->id) {
 }

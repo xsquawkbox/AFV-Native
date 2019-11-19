@@ -61,6 +61,7 @@ namespace afv_native {
             SoundIo *mSoundIO;
             SoundIoInStream *mInputStream;
             SoundIoOutStream *mOutputStream;
+            bool mOutputIsStereo;
 
             SoundIoRingBuffer *mInputRingBuffer;
             SoundIoRingBuffer *mOutputRingBuffer;
