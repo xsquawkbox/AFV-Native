@@ -39,6 +39,7 @@
 #include <sstream>
 #include <ios>
 #include <iomanip>
+#include <mutex>
 
 using namespace std;
 static FILE *gLoggerFh = nullptr;
@@ -73,6 +74,7 @@ defaultLogger(const char *subsystem, const char *file, int line, const char *out
 }
 
 static afv_native::log_fn  gLogger = defaultLogger;
+static std::mutex gLoggerLock;
 
 void afv_native::__Log(const char *file, int line, const char *subsystem, const char *format, ...)
 {
@@ -87,9 +89,13 @@ void afv_native::__Log(const char *file, int line, const char *subsystem, const 
 
     std::vector<char> outBuffer(outputLen);
     vsnprintf(outBuffer.data(), outputLen, format, ap);
-    gLogger(subsystem, file, line, outBuffer.data());
-            va_end(ap2);
-            va_end(ap);
+    {
+        std::lock_guard<std::mutex> logLock(gLoggerLock);
+
+        gLogger(subsystem, file, line, outBuffer.data());
+    }
+    va_end(ap2);
+    va_end(ap);
 }
 
 void afv_native::setLogger(afv_native::log_fn newLogger) {
@@ -111,6 +117,10 @@ void afv_native::__Dumphex(const char *file, int line, const char *subsystem, co
             lineout.fill('0');
             lineout << std::right << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(reinterpret_cast<const uint8_t *>(buf)[i++]);
         }
-        gLogger(subsystem, file, line, lineout.str().c_str());
+        {
+            std::lock_guard<std::mutex> logLock(gLoggerLock);
+
+            gLogger(subsystem, file, line, lineout.str().c_str());
+        }
     }
 }

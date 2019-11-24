@@ -38,6 +38,7 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <atomic>
 #include <soundio/soundio.h>
 
 #include "afv-native/audio/ISampleSink.h"
@@ -51,6 +52,10 @@ namespace afv_native {
             static void staticSioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max);
             void sioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max);
             void sioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max);
+            static void staticSioOutputUnderflowCallback(struct SoundIoOutStream *stream);
+            static void staticSioOutputErrorCallback(struct SoundIoOutStream *stream, int err);
+            static void staticSioInputOverflowCallback(struct SoundIoInStream *stream);
+            static void staticSioInputErrorCallback(struct SoundIoInStream *stream, int err);
 
         protected:
             unsigned mApi;
@@ -98,6 +103,10 @@ namespace afv_native {
             static std::map<Api,std::string> getAPIs();
             static std::map<int,DeviceInfo> getCompatibleInputDevicesForApi(AudioDevice::Api api);
             static std::map<int,DeviceInfo> getCompatibleOutputDevicesForApi(AudioDevice::Api api);
+
+            std::atomic<uint32_t>   OutputUnderflows;
+            std::atomic<uint32_t>   InputOverflows;
+
         protected:
             static bool isAbleToOpen(SoundIoDevice *device_info);
 
