@@ -59,7 +59,10 @@ AudioDevice::AudioDevice(
         mInputRingBuffer(),
         mOutputRingBuffer(),
         mSink(nullptr),
-        mSource(nullptr) {
+        mSource(nullptr),
+        OutputUnderflows(),
+        InputOverflows()
+{
     mSoundIO = soundio_create();
     if (mSoundIO == nullptr) {
         LOG("AudioDevice", "libsoundio failed to create context");
@@ -123,6 +126,8 @@ bool AudioDevice::open() {
             mInputStream->software_latency = 1000.0 / static_cast<double>(frameLengthMs);
             mInputStream->name = "AFV Microphone";
             mInputStream->read_callback = staticSioReadCallback;
+            mInputStream->overflow_callback = staticSioInputOverflowCallback;
+            mInputStream->error_callback = staticSioInputErrorCallback;
             auto rv = soundio_instream_open(mInputStream);
             if (rv != SoundIoErrorNone) {
                 LOG("AudioDevice::open()", "Couldn't open input stream: %s", soundio_strerror(rv));
@@ -159,6 +164,8 @@ bool AudioDevice::open() {
             mOutputStream->software_latency = 1000.0 / static_cast<double>(frameLengthMs);
             mOutputStream->name = "AFV Radio Speaker";
             mOutputStream->write_callback = staticSioWriteCallback;
+            mOutputStream->underflow_callback = staticSioOutputUnderflowCallback;
+            mOutputStream->error_callback = staticSioOutputErrorCallback;
             auto rv = soundio_outstream_open(mOutputStream);
             if (rv != SoundIoErrorNone) {
                 LOG("AudioDevice::open()", "Couldn't open output stream: %s", soundio_strerror(rv));
@@ -282,12 +289,12 @@ void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink) {
 
 void AudioDevice::close() {
     if (mInputStream) {
-        soundio_instream_pause(mInputStream, true);
+        //soundio_instream_pause(mInputStream, true);
         soundio_instream_destroy(mInputStream);
         mInputStream = nullptr;
     }
     if (mOutputStream) {
-        soundio_outstream_pause(mOutputStream, true);
+        //soundio_outstream_pause(mOutputStream, true);
         soundio_outstream_destroy(mOutputStream);
         mOutputStream = nullptr;
     }
@@ -442,6 +449,38 @@ void AudioDevice::staticSioReadCallback(struct SoundIoInStream *stream, int fram
 void AudioDevice::staticSioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max) {
     auto *thisAd = reinterpret_cast<AudioDevice *>(stream->userdata);
     thisAd->sioWriteCallback(stream, frame_count_min, frame_count_max);
+}
+
+void
+AudioDevice::staticSioOutputUnderflowCallback(struct SoundIoOutStream *stream)
+{
+#ifndef NDEBUG
+    LOG("AudioDevice::Output", "Output Underflowed");
+#endif
+    auto *thisAd = reinterpret_cast<AudioDevice *>(stream->userdata);
+    thisAd->OutputUnderflows.fetch_add(1);
+}
+
+void
+AudioDevice::staticSioOutputErrorCallback(struct SoundIoOutStream *stream, int err)
+{
+    LOG("AudioDevice::Output", "Got Error: %s", soundio_strerror(err));
+}
+
+void
+AudioDevice::staticSioInputOverflowCallback(struct SoundIoInStream *stream)
+{
+#ifndef NDEBUG
+    LOG("AudioDevice::Input", "Input Overflowed");
+#endif
+    auto *thisAd = reinterpret_cast<AudioDevice *>(stream->userdata);
+    thisAd->InputOverflows.fetch_add(1);
+}
+
+void
+AudioDevice::staticSioInputErrorCallback(struct SoundIoInStream *stream, int err)
+{
+    LOG("AudioDevice::Input", "Got Error: %s", soundio_strerror(err));
 }
 
 AudioDevice::DeviceInfo::DeviceInfo(const SoundIoDevice *src) :
