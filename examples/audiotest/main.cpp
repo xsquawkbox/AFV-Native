@@ -46,7 +46,7 @@ main(int argc, char **argv)
 
         {
             LOG("audiotest", "creating audio device");
-            auto soundDevice = audio::AudioDevice(
+            audio::AudioDevice soundDevice(
                     "audiotest",
                     deviceId,
                     "",
@@ -64,7 +64,7 @@ main(int argc, char **argv)
     auto sine = std::make_shared<audio::SineToneSource>(160);
     {
         LOG("audiotest", "creating audio device");
-        auto soundDevice = audio::AudioDevice(
+        audio::AudioDevice soundDevice(
             "audiotest",
             deviceId,
             "",
