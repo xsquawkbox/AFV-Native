@@ -64,7 +64,11 @@ main(int argc, char **argv)
     auto sine = std::make_shared<audio::SineToneSource>(160);
     {
         LOG("audiotest", "creating audio device");
-        auto soundDevice = audio::AudioDevice("audiotest", "", "", defaultApi);
+        auto soundDevice = audio::AudioDevice(
+            "audiotest",
+            deviceId,
+            "",
+            defaultApi);
         soundDevice.setSource(sine);
         soundDevice.open();
         LOG("audiotest", "sinetone should be playing.  Press enter to end.");

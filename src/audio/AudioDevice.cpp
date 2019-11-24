@@ -425,7 +425,7 @@ size_t AudioDevice::optimumFrameCount(size_t staleframes, size_t min, size_t max
     } else {
         frameCount = std::max<size_t>(staleframes + frameSizeSamples, min);
     }
-    frameCount = std::min<size_t>(staleframes, max);
+    frameCount = std::min<size_t>(frameCount, max);
     if (frameCount == 0) {
         frameCount = std::min<size_t>(frameSizeSamples, max);
     }
