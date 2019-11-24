@@ -21,7 +21,7 @@ class AfvNativeConan(ConanFile):
         "libcurl:with_openssl": True,
         "libevent:with_openssl": False,
         "libsoundio*:enable_jack": False,
-        "libsoundio*:enable_pulseaudio": True,
+        "libsoundio*:enable_pulseaudio": False,
         "libsoundio*:enable_alsa": True,
     }
     generators = "cmake"

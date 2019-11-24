@@ -282,10 +282,12 @@ void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink) {
 
 void AudioDevice::close() {
     if (mInputStream) {
+        soundio_instream_pause(mInputStream, true);
         soundio_instream_destroy(mInputStream);
         mInputStream = nullptr;
     }
     if (mOutputStream) {
+        soundio_outstream_pause(mOutputStream, true);
         soundio_outstream_destroy(mOutputStream);
         mOutputStream = nullptr;
     }
