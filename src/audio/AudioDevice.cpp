@@ -218,7 +218,7 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
                 chPtr[1] += bufAreas->step;
                 ringFramesLeft--;
             }
-            soundio_ring_buffer_advance_read_ptr(mInputRingBuffer,
+            soundio_ring_buffer_advance_read_ptr(mOutputRingBuffer,
                                                  (ringFrames - ringFramesLeft) * static_cast<int>(sizeof(SampleType)));
         }
         soundio_outstream_end_write(stream);
@@ -425,7 +425,11 @@ size_t AudioDevice::optimumFrameCount(size_t staleframes, size_t min, size_t max
     } else {
         frameCount = std::max<size_t>(staleframes + frameSizeSamples, min);
     }
-    return std::min<size_t>(staleframes, max);
+    frameCount = std::min<size_t>(staleframes, max);
+    if (frameCount == 0) {
+        frameCount = std::min<size_t>(frameSizeSamples, max);
+    }
+    return frameCount;
 }
 
 void AudioDevice::staticSioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max) {
