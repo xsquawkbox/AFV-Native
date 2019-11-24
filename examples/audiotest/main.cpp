@@ -25,6 +25,18 @@ main(int argc, char **argv)
 {
     setLogger(logger);
 
+    auto allApis = audio::AudioDevice::getAPIs();
+    for (const auto &apiPair: allApis) {
+        std::cout << "API " << static_cast<int>(apiPair.first) << ": " << apiPair.second << std::endl;
+    }
+    const auto defaultApi = allApis.begin()->first;
+
+    auto allOutputDevs = audio::AudioDevice::getCompatibleOutputDevicesForApi(defaultApi);
+    for (const auto &devPair: allOutputDevs) {
+        std::cout << "Output Device " << devPair.first << ": " << devPair.second.name << std::endl;
+    }
+    auto deviceId = allOutputDevs.begin()->second.id;
+
     auto *wavData = audio::LoadWav("testsnd.wav");
     if (nullptr == wavData) {
         LOG("audiotest", "failed to load wavfile");
@@ -36,8 +48,9 @@ main(int argc, char **argv)
             LOG("audiotest", "creating audio device");
             auto soundDevice = audio::AudioDevice(
                     "audiotest",
+                    deviceId,
                     "",
-                    "",0);
+                    defaultApi);
             soundDevice.setSource(soundPlayer);
             soundDevice.open();
             LOG("audiotest", "sample should be playing");
@@ -51,7 +64,7 @@ main(int argc, char **argv)
     auto sine = std::make_shared<audio::SineToneSource>(160);
     {
         LOG("audiotest", "creating audio device");
-        auto soundDevice = audio::AudioDevice("audiotest", "", "", 0);
+        auto soundDevice = audio::AudioDevice("audiotest", "", "", defaultApi);
         soundDevice.setSource(sine);
         soundDevice.open();
         LOG("audiotest", "sinetone should be playing.  Press enter to end.");
