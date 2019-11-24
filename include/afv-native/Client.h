@@ -255,6 +255,11 @@ namespace afv_native {
         void startAudio();
         void stopAudio();
 
+        /** logAudioStatistics dumps the internal data about over/underflow totals to the AFV log.
+         *
+         */
+        void logAudioStatistics();
+
     };
 }
 

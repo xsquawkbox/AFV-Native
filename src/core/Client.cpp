@@ -451,3 +451,10 @@ std::vector<afv::dto::Station> Client::getStationAliases() const
     return std::move(mAPISession.getStationAliases());
 }
 
+void Client::logAudioStatistics() {
+    if (mAudioDevice) {
+        LOG("Client", "Output Buffer Underflows: %d", mAudioDevice->OutputUnderflows.load());
+        LOG("Client", "Input Buffer Overflows: %d", mAudioDevice->InputOverflows.load());
+    }
+}
+
