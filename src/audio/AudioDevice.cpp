@@ -123,7 +123,7 @@ bool AudioDevice::open() {
             mInputStream->format = SoundIoFormatFloat32NE;
             mInputStream->sample_rate = sampleRateHz;
             mInputStream->userdata = this;
-            mInputStream->software_latency = 1000.0 / static_cast<double>(frameLengthMs);
+            mInputStream->software_latency = static_cast<double>(frameLengthMs) / 1000.0;
             mInputStream->name = "AFV Microphone";
             mInputStream->read_callback = staticSioReadCallback;
             mInputStream->overflow_callback = staticSioInputOverflowCallback;
@@ -161,7 +161,7 @@ bool AudioDevice::open() {
             mOutputStream->format = SoundIoFormatFloat32NE;
             mOutputStream->sample_rate = sampleRateHz;
             mOutputStream->userdata = this;
-            mOutputStream->software_latency = 1000.0 / static_cast<double>(frameLengthMs);
+            mOutputStream->software_latency = static_cast<double>(frameLengthMs) / 1000.0;
             mOutputStream->name = "AFV Radio Speaker";
             mOutputStream->write_callback = staticSioWriteCallback;
             mOutputStream->underflow_callback = staticSioOutputUnderflowCallback;
