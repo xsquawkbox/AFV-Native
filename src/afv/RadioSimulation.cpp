@@ -103,7 +103,10 @@ void RadioSimulation::putAudioFrame(const audio::SampleType *bufferIn)
         while (i-- > 0) {
             peak = std::max<audio::SampleType>(peak, fabs(*(b++)));
         }
-        mVuMeter.addDatum(20.0 * log10(peak));
+        double peakDb = 20.0 * log10(peak);
+        peakDb = std::max(-40.0, peakDb);
+        peakDb = std::min(0.0, peakDb);
+        mVuMeter.addDatum(peakDb);
     }
     if (!mPtt.load() && !mLastFramePtt) {
         // Tick the sequence over when we have no Ptt as the compressed endpoint wont' get called to do that.
@@ -457,12 +460,12 @@ void RadioSimulation::reset()
 
 double RadioSimulation::getVu() const
 {
-    return mVuMeter.getAverage();
+    return std::max(-40.0, mVuMeter.getAverage());
 }
 
 double RadioSimulation::getPeak() const
 {
-    return mVuMeter.getMax();
+    return std::max(-40.0, mVuMeter.getMax());
 }
 
 bool RadioSimulation::getEnableInputFilters() const
