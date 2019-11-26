@@ -194,8 +194,10 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
     auto rv = soundio_outstream_begin_write(stream, &bufAreas, &sampleCount);
     if (rv == SoundIoErrorNone) {
         char *chPtr[2] = {bufAreas[0].ptr, bufAreas[0].ptr};
+        int chStep[2] = {bufAreas[0].step, bufAreas[0].step};
         if (mOutputIsStereo) {
             chPtr[1] = bufAreas[1].ptr;
+            chStep[1] = bufAreas[1].step;
         }
         int samplesWritten = 0;
         while (samplesWritten < sampleCount) {
@@ -221,8 +223,8 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
                 *reinterpret_cast<SampleType *>(chPtr[1]) = *(ringBuf);
                 ringBuf++;
                 samplesWritten++;
-                chPtr[0] += bufAreas->step;
-                chPtr[1] += bufAreas->step;
+                chPtr[0] += chStep[0];
+                chPtr[1] += chStep[1];
                 ringFramesLeft--;
             }
             soundio_ring_buffer_advance_read_ptr(mOutputRingBuffer,
