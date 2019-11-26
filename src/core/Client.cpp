@@ -259,8 +259,10 @@ void Client::startAudio()
 
 void Client::stopAudio()
 {
-    mAudioDevice->close();
-    mAudioDevice.reset();
+    if (mAudioDevice) {
+        mAudioDevice->close();
+        mAudioDevice.reset();
+    }
 }
 
 std::vector<afv::dto::Transceiver> Client::makeTransceiverDto()
