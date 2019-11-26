@@ -237,12 +237,9 @@ void AudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_co
 }
 
 void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max) {
-    int desiredFrameCount = frameSizeSamples -
-                            (soundio_ring_buffer_fill_count(mInputRingBuffer) / static_cast<int>(sizeof(SampleType)));
-    desiredFrameCount = std::max(desiredFrameCount, frame_count_min);
-    desiredFrameCount = std::min(desiredFrameCount, frame_count_max);
+    // always pull the full input buffer.
     SoundIoChannelArea *bufAreas;
-    int sampleCount = desiredFrameCount;
+    int sampleCount = frame_count_max;
     auto rv = soundio_instream_begin_read(stream, &bufAreas, &sampleCount);
     if (rv == SoundIoErrorNone) {
         auto *flexPtr = bufAreas[0].ptr;
@@ -253,7 +250,7 @@ void AudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_coun
             auto *ringWriteBuf = reinterpret_cast<SampleType *>(soundio_ring_buffer_write_ptr(mInputRingBuffer));
             ringFrames = soundio_ring_buffer_free_count(mInputRingBuffer) / static_cast<int>(sizeof(SampleType));
             const int initialRingFrames = ringFrames;
-            while (samplesRead < sampleCount && ringFrames > 0) {
+            while ((samplesRead < sampleCount) && (ringFrames > 0)) {
                 *(ringWriteBuf++) = *reinterpret_cast<SampleType *>(flexPtr);
                 samplesRead++;
                 flexPtr += bufAreas[0].step;
