@@ -252,13 +252,7 @@ TestClient::drawFrame() {
 
     if (!mClient->isVoiceConnected()) {
         if (ImGui::Button("Connect Voice")) {
-            mClient->setAudioApi(mAudioApi);
-            try {
-                mClient->setAudioInputDevice(mInputDevices.at(mInputDevice).id);
-            } catch (std::out_of_range &) {}
-            try {
-                mClient->setAudioOutputDevice(mOutputDevices.at(mOutputDevice).id);
-            } catch (std::out_of_range &) {}
+            setAudioDevice();
             mClient->setBaseUrl(mAFVAPIServer);
             mClient->setClientPosition(mClientLatitude, mClientLongitude, mClientAltitudeMSLM, mClientAltitudeAGLM);
             mClient->setRadioState(0, mCom1Freq);
@@ -277,6 +271,14 @@ TestClient::drawFrame() {
             mClient->disconnect();
         }
     }
+    if (ImGui::Button("Start Audio (VU/Peak Test)")) {
+        setAudioDevice();
+        mClient->startAudio();
+    }
+    if (ImGui::Button("Stop Audio (VU/Peak Test)")) {
+        mClient->stopAudio();
+    }
+
     ImGui::End();
 
     // Start the Dear ImGui frame
@@ -285,6 +287,16 @@ TestClient::drawFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(mWindow);
+}
+
+void TestClient::setAudioDevice() const {
+    mClient->setAudioApi(mAudioApi);
+    try {
+        mClient->setAudioInputDevice(mInputDevices.at(mInputDevice).id);
+    } catch (std::out_of_range &) {}
+    try {
+        mClient->setAudioOutputDevice(mOutputDevices.at(mOutputDevice).id);
+    } catch (std::out_of_range &) {}
 }
 
 void

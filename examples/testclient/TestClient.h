@@ -98,6 +98,8 @@ public:
     void drawFrame();
 
     void guiMainMenu();
+
+    void setAudioDevice() const;
 };
 
 
