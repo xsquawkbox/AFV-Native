@@ -108,7 +108,7 @@ namespace afv_native {
             std::atomic<uint32_t>   InputOverflows;
 
         protected:
-            static bool isAbleToOpen(SoundIoDevice *device_info);
+            static bool isAbleToOpen(SoundIoDevice *device_info, bool for_output = false);
 
         };
     }

@@ -363,7 +363,7 @@ std::map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesFo
                     if (device_info->is_raw) {
                         continue;
                     }
-                    if (isAbleToOpen(device_info)) {
+                    if (isAbleToOpen(device_info, true)) {
                         LOG("AudioDevice", "output device %s - OK", device_info->name);
                         deviceList.emplace(i, DeviceInfo(device_info));
                     }
@@ -377,7 +377,7 @@ std::map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesFo
     return std::move(deviceList);
 }
 
-bool AudioDevice::isAbleToOpen(SoundIoDevice *device_info) {
+bool AudioDevice::isAbleToOpen(SoundIoDevice *device_info, bool for_output) {
     // first, format.
     if (!soundio_device_supports_format(device_info, SoundIoFormatFloat32NE)) {
         LOG("AudioDevice", "device %s - can't handle float pcm.", device_info->name);
@@ -394,8 +394,12 @@ bool AudioDevice::isAbleToOpen(SoundIoDevice *device_info) {
     auto *monoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdMono);
     auto *stereoLayout = soundio_channel_layout_get_builtin(SoundIoChannelLayoutIdStereo);
     if (!soundio_device_supports_layout(device_info, monoLayout) &&
-        !soundio_device_supports_layout(device_info, stereoLayout)) {
-        LOG("AudioDevice", "device %s - doesn't support monaural or stereo audio", device_info->name);
+        !(for_output && soundio_device_supports_layout(device_info, stereoLayout))) {
+        if (for_output) {
+            LOG("AudioDevice", "device %s - doesn't support monaural or stereo audio", device_info->name);
+        } else {
+            LOG("AudioDevice", "device %s - doesn't support monaural audio", device_info->name);
+        }
         return false;
     }
     return true;
