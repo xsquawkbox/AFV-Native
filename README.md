@@ -24,6 +24,20 @@ AFV-Native has the following goals:
 
 * Must have a reasonably straight-forward API for client developers.
 
+## Using AFV-Native
+
+It's recommended to use the [Conan](https://conan.io) package for AFV-Native whenever possible
+rather than any other integration as it's the primary integration method used in XSB and the 
+most tested.
+
+Simply add the xsquawkbox-public & bincrafters repos to your conan workspace, and require 
+`AFV-Native/<version>@xsquawkbox/<release-type>`, then use the correct method for your generators & build system
+to include the AFV-Native library and headers.
+ 
+
+(Right now we only have `devel` releases and you should pin specific versions as the API is still changing.  Once we 
+ have a stable XSB release, I'll likely bump AFV-Native to 1.0 and stabilise the API. - CC)
+ 
 ## Building AFV-native
 
 ### Prerequisites
