@@ -57,6 +57,7 @@ You will also need a suitable compiler.
 Tested compilers are:
 * gcc (Linux)
 * MSVC 2019 (Windows)
+* apple-clang (macOS)
 
 This will let you find the packages required that are not published to `conan-center` (yet)
 
@@ -84,7 +85,7 @@ AFV-native was written with the following assumptions:
 It explictly is written to work with:
 * Win32 x86_64 compiled using MSVC
 * amd64 Linux compiled using gcc
-* (coming soon) Macos compiled using apple-clang.
+* Macos compiled using apple-clang.
 
 At this time, AFV-Native only implements as much as required for pilot clients.  It doesn't understand the 
 inter-controller direct voice controls, nor does it include support for crosscoupling or multi-trannsmitter voice 
