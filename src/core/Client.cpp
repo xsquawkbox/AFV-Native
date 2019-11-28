@@ -252,7 +252,6 @@ void Client::startAudio()
     if (!mAudioDevice->open()) {
         LOG("afv::Client", "Unable to open audio device.");
         stopAudio();
-        mVoiceSession.Disconnect(true);
         ClientEventCallback.invokeAll(ClientEventType::AudioError, nullptr);
     };
 }
