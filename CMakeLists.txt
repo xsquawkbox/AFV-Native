@@ -99,7 +99,6 @@ add_library(afv_native
 		src/afv/dto/Transceiver.cpp
 		src/afv/dto/VoiceServerConnectionData.cpp
 		src/audio/AudioDevice.cpp
-		src/audio/SoundIOAudioDevice.cpp
 		src/audio/OutputMixer.cpp
 		src/audio/RecordedSampleSource.cpp
 		src/audio/SineToneSource.cpp

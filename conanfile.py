@@ -17,7 +17,7 @@ class AfvNativeConan(ConanFile):
     default_options = {
         "shared": False,
         "fPIC": True,
-        "audio_library": "soundio",
+        "audio_library": "portaudio",
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,

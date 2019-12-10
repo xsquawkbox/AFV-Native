@@ -39,7 +39,6 @@
 #include <map>
 #include <vector>
 #include <atomic>
-#include <soundio/soundio.h>
 
 #include "afv-native/audio/ISampleSink.h"
 #include "afv-native/audio/ISampleSource.h"
