@@ -12,10 +12,12 @@ class AfvNativeConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
+        "audio_library": ["portaudio", "soundio"],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
+        "audio_library": "soundio",
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,
@@ -70,12 +72,19 @@ class AfvNativeConan(ConanFile):
         elif self.settings.os == 'Macos':
             self.options['libcurl'].darwin_ssl = False
 
+    def requirements(self):
+        if self.options.audio_library == "soundio":
+            self.requires("libsoundio/2.0.0@xsquawkbox/devel")
+        elif self.options.audio_library == "portaudio":
+            self.requires("portaudio/v190600.20161030@bincrafters/stable")
+
     def source(self):
         pass
 
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.configure(source_folder=".")
+        cmake.definitions["AFV_NATIVE_AUDIO_LIBRARY"] = self.options.audio_library
         return cmake
 
     def build(self):

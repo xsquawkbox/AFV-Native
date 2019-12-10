@@ -15,6 +15,19 @@ endif(MSVC)
 set(CMAKE_CXX_STANDARD 14)
 enable_testing()
 
+set(AFV_NATIVE_AUDIO_LIBRARY "soundio" CACHE STRING "Audio Library to use - either portaudio or soundio")
+if(AFV_NATIVE_AUDIO_LIBRARY MATCHES "portaudio")
+	set(AFV_NATIVE_AUDIO_SOURCES
+			src/audio/PortAudioAudioDevice.cpp
+			src/audio/PortAudioAudioDevice.h)
+	set(AFV_NATIVE_AUDIO_LIBRARIES CONAN_PKG::portaudio)
+elseif(AFV_NATIVE_AUDIO_LIBRARY MATCHES "soundio")
+	set(AFV_NATIVE_AUDIO_SOURCES
+			src/audio/SoundIOAudioDevice.cpp
+			src/audio/SoundIOAudioDevice.h)
+	set(AFV_NATIVE_AUDIO_LIBRARIES CONAN_PKG::libsoundio)
+endif()
+
 set(AFV_NATIVE_HEADERS
 		include/afv-native/Client.h
 		include/afv-native/event.h
@@ -86,6 +99,7 @@ add_library(afv_native
 		src/afv/dto/Transceiver.cpp
 		src/afv/dto/VoiceServerConnectionData.cpp
 		src/audio/AudioDevice.cpp
+		src/audio/SoundIOAudioDevice.cpp
 		src/audio/OutputMixer.cpp
 		src/audio/RecordedSampleSource.cpp
 		src/audio/SineToneSource.cpp
@@ -109,6 +123,7 @@ add_library(afv_native
 		src/http/RESTRequest.cpp
         src/util/base64.cpp
 		src/util/monotime.cpp
+		${AFV_NATIVE_AUDIO_SOURCES}
 		)
 target_link_libraries(afv_native
         PUBLIC
@@ -117,9 +132,9 @@ target_link_libraries(afv_native
         CONAN_PKG::jsonformoderncpp
         CONAN_PKG::libcurl
         CONAN_PKG::libevent
-        CONAN_PKG::libsoundio
         CONAN_PKG::libopus
-		CONAN_PKG::speexdsp)
+		CONAN_PKG::speexdsp
+		${AFV_NATIVE_AUDIO_LIBRARIES})
 target_include_directories(afv_native
 		PRIVATE ${CMAKE_SOURCE_DIR}/extern/cpp-jwt/include
         PUBLIC ${CMAKE_SOURCE_DIR}/include)

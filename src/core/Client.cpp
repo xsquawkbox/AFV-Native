@@ -239,7 +239,7 @@ void Client::startAudio()
 {
     if (!mAudioDevice) {
         LOG("afv::Client", "Initialising Audio...");
-        mAudioDevice = std::make_shared<audio::AudioDevice>(
+        mAudioDevice = audio::AudioDevice::makeDevice(
                 mClientName,
                 mAudioOutputDeviceName,
                 mAudioInputDeviceName,
