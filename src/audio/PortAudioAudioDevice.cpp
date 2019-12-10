@@ -330,7 +330,7 @@ map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleInputDevicesForApi(A
     auto allDevices = PortAudioAudioDevice::getCompatibleInputDevicesForApi(api);
     map<int, AudioDevice::DeviceInfo> returnDevices;
     for (const auto &p: allDevices) {
-        returnDevices.insert_or_assign(p.first, AudioDevice::DeviceInfo(p.second.name));
+        returnDevices.emplace(p.first, AudioDevice::DeviceInfo(p.second.name));
     }
     return returnDevices;
 }
@@ -339,7 +339,7 @@ map<int, AudioDevice::DeviceInfo> AudioDevice::getCompatibleOutputDevicesForApi(
     auto allDevices = PortAudioAudioDevice::getCompatibleOutputDevicesForApi(api);
     map<int, AudioDevice::DeviceInfo> returnDevices;
     for (const auto &p: allDevices) {
-        returnDevices.insert_or_assign(p.first, AudioDevice::DeviceInfo(p.second.name));
+        returnDevices.emplace(p.first, AudioDevice::DeviceInfo(p.second.name));
     }
     return returnDevices;
 }
