@@ -15,7 +15,7 @@ endif(MSVC)
 set(CMAKE_CXX_STANDARD 14)
 enable_testing()
 
-set(AFV_NATIVE_AUDIO_LIBRARY "soundio" CACHE STRING "Audio Library to use - either portaudio or soundio")
+set(AFV_NATIVE_AUDIO_LIBRARY "portaudio" CACHE STRING "Audio Library to use - either portaudio or soundio")
 if(AFV_NATIVE_AUDIO_LIBRARY MATCHES "portaudio")
 	set(AFV_NATIVE_AUDIO_SOURCES
 			src/audio/PortAudioAudioDevice.cpp

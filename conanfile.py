@@ -35,7 +35,6 @@ class AfvNativeConan(ConanFile):
         "libevent/2.1.11@bincrafters/stable",
         "libopus/1.3.1@xsquawkbox/testing",
         "speexdsp/1.2.0@xsquawkbox/devel",
-        "libsoundio/2.0.0@xsquawkbox/devel",
     ]
     build_requires = [
         "gtest/1.8.1@bincrafters/stable",
