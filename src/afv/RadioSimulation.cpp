@@ -65,6 +65,8 @@ RadioSimulation::RadioSimulation(
         std::shared_ptr<EffectResources> resources,
         cryptodto::UDPChannel *channel,
         unsigned int radioCount):
+        IncomingAudioStreams(0),
+        AudiableAudioStreams(nullptr),
         mEvBase(evBase),
         mResources(std::move(resources)),
         mChannel(),
@@ -91,6 +93,7 @@ RadioSimulation::RadioSimulation(
             16));
     setUDPChannel(channel);
     mMaintenanceTimer.enable(maintenanceTimerIntervalMs);
+    AudiableAudioStreams = new std::atomic<uint32_t>[radioCount];
 }
 
 void RadioSimulation::putAudioFrame(const audio::SampleType *bufferIn)
@@ -177,11 +180,12 @@ bool RadioSimulation::_process_radio(
         // don't analyze and mix-in the radios transmitting, but suppress the
         // effects.
         resetRadioFx(rxIter);
+        AudiableAudioStreams[rxIter].store(0);
         return true;
     }
     // now, find all streams that this applies to.
     float crackleGain = 0.0f;
-    int concurrentStreams = 0;
+    uint32_t concurrentStreams = 0;
     for (auto &srcPair: mIncomingStreams) {
         if (!srcPair.second.source || !srcPair.second.source->isActive() ||
             (sampleCache.find(srcPair.second.source.get()) == sampleCache.end())) {
@@ -223,6 +227,7 @@ bool RadioSimulation::_process_radio(
             }
         }
     }
+    AudiableAudioStreams[rxIter].store(concurrentStreams);
     if (concurrentStreams > 0) {
         if (!mRadioState[rxIter].mBypassEffects) {
             float whiteNoiseGain = 0.0f;
@@ -266,6 +271,8 @@ audio::SourceStatus RadioSimulation::getAudioFrame(audio::SampleType *bufferOut)
     std::lock_guard<std::mutex> streamGuard(mStreamMapLock);
 
     std::map<void *, audio::SampleType[audio::frameSizeSamples]> sampleCache;
+
+    uint32_t allStreams = 0;
     // first, pull frames from all active audio sources.
     for (auto &src: mIncomingStreams) {
         if (src.second.source && src.second.source->isActive() &&
@@ -273,9 +280,13 @@ audio::SourceStatus RadioSimulation::getAudioFrame(audio::SampleType *bufferOut)
             const auto rv = src.second.source->getAudioFrame(sampleCache[src.second.source.get()]);
             if (rv != audio::SourceStatus::OK) {
                 sampleCache.erase(src.second.source.get());
+            } else {
+                allStreams++;
             }
         }
     }
+    IncomingAudioStreams.store(allStreams);
+
     // empty the output buffer.
     ::memset(mMixingBuffer, 0, sizeof(audio::SampleType) * audio::frameSizeSamples);
 
@@ -327,11 +338,13 @@ RadioSimulation::~RadioSimulation()
 {
     _mm_free(mFetchBuffer);
     _mm_free(mMixingBuffer);
+    delete[] AudiableAudioStreams;
 }
 
 void RadioSimulation::rxVoicePacket(const afv::dto::AudioRxOnTransceivers &pkt)
 {
     std::lock_guard<std::mutex> streamMapLock(mStreamMapLock);
+    //FIXME:  Deal with the case of a single-callsign transmitting multiple different voicestreams simultaneously.
     mIncomingStreams[pkt.Callsign].source->appendAudioDTO(pkt);
     mIncomingStreams[pkt.Callsign].transceivers = pkt.Transceivers;
 }

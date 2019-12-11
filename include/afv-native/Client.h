@@ -49,7 +49,177 @@
 #include "afv-native/http/RESTRequest.h"
 
 namespace afv_native {
+    /** Client provides a fully functional PilotClient that can be integrated into
+     * an application.
+     */
     class Client {
+    public:
+        /** Construct an AFV-native Pilot Client.
+         *
+         * The pilot client will be in the disconnected state and ready to have
+         * the credentials, position and other configuration options set before
+         * attempting to connect.
+         *
+         * The containing client must provide and run a libevent eventloop for
+         * AFV-native to attach its operations against, and must ensure that
+         * this loop is run constantly, even when the client is not connected.
+         * (It's used for some tear-down operations which must run to completion
+         * after the client is shut-down if possible.)
+         *
+         * @param evBase an initialised libevent event_base to register the client's
+         *      asynchronous IO and deferred operations against.
+         * @param resourceBasePath A relative or absolute path to where the AFV-native
+         *      resource files are located.
+         * @param baseUrl The baseurl for the AFV API server to connect to.  The
+         *      default should be used in most cases.
+         * @param numRadios The number of transceivers to instantiate for this
+         *      client.
+         * @param clientName The name of this client to advertise to the
+         *      audio-subsystem.
+         */
+        Client(
+                struct event_base *evBase,
+                const std::string &resourceBasePath,
+                unsigned int numRadios = 2,
+                const std::string &clientName = "AFV-Native",
+                std::string baseUrl = "https://voice1.vatsim.uk");
+
+        virtual ~Client();
+
+        /** setBaseUrl is used to change the API URL.
+         *
+         * @note This affects all future API requests, but any in flight will not
+         * be cancelled and resent.
+         *
+         * @param newUrl the new URL (without at trailing slash).
+         */
+        void setBaseUrl(std::string newUrl);
+
+        /** set the ClientPosition to report with the next transceiver update.
+         *
+         * @param lat the client latitude in decimal degrees.
+         * @param lon the client longitude in decimal degrees.
+         * @param amslm the client's altitude above mean-sea-level in meters.
+         * @param aglm the client's altitude above ground level in meters.
+         */
+        void setClientPosition(double lat, double lon, double amslm, double aglm);
+
+        /** set the radio frequency for the nominated radio.
+         *
+         * This method will invoke an immediate transceiver set update.
+         *
+         * @param radioNum the ordinal of the radio to tune
+         * @param freq the frequency in Hz
+         */
+        void setRadioState(unsigned int radioNum, int freq);
+
+        /** set the radio the Ptt will control.
+         *
+         * @param radioNum the ordinal fo the radio that will transmit when PTT
+         *     is pressed.
+         */
+        void setTxRadio(unsigned int radioNum);
+
+        /** sets the (linear) gain to be applied to radioNum */
+        void setRadioGain(unsigned int radioNum, float gain);
+
+        /** sets the PTT (push-to-talk) state for the radio.
+         *
+         * @note If the radio frequencies are out of sync with the server, this will
+         * initiate an immediate transceiver set update and the Ptt will remain
+         * blocked/guarded until the update has been acknowledged.
+         *
+         * @param pttState true to start transmitting, false otherwise.
+         */
+        void setPtt(bool pttState);
+
+        /** setCredentials sets the user Credentials for this client.
+         *
+         * @note This only affects future attempts to connect.
+         *
+         * @param username The user's CID or username.
+         * @param password The user's password
+         */
+        void setCredentials(const std::string &username, const std::string &password);
+
+        /** setCallsign sets the user's callsign for this client.
+         *
+         * @note This only affects future attempts to connect.
+         *
+         * @param callsign the callsign to use.
+         */
+        void setCallsign(std::string callsign);
+
+        /** set the audioApi (per the audio::AudioDevice definitions) to use when next starting the
+         * audio system.
+         * @param api an API id
+         */
+        void setAudioApi(audio::AudioDevice::Api api);
+
+        void setAudioInputDevice(std::string inputDevice);
+        void setAudioOutputDevice(std::string outputDevice);
+
+        /** isAPIConnected() indicates if the API Server connection is up.
+         *
+         * @return true if the API server connection is good or in the middle of
+         * reauthenticating a live session.  False if it is yet to authenticate,
+         * or is not connected at all.
+         */
+        bool isAPIConnected() const;
+        bool isVoiceConnected() const;
+
+        /** connect() starts the Client connecting to the API server, then establishing the voice session.
+         *
+         * In order for this to work, the credentials, callsign and audio device must be configured first,
+         * and you should have already set the clientPosition and radio states once.
+         *
+         * @return true if the connection process was able to start, false if key data is missing or an
+         *  early failure occured.
+         */
+        bool connect();
+
+        /** disconnect() tears down the voice session and discards the authentication session data.
+         *
+         */
+        void disconnect();
+
+        double getInputPeak() const;
+        double getInputVu() const;
+
+        bool getEnableInputFilters() const;
+        void setEnableInputFilters(bool enableInputFilters);
+        void setEnableOutputEffects(bool enableEffects);
+
+        /** ClientEventCallback provides notifications when certain client events occur.  These can be used to
+         * provide feedback within the client itself without needing to poll Client's methods.
+         *
+         * The callbacks take two paremeters-  the first is the ClientEventType which informs the client what type
+         * of event occured.
+         *
+         * The second argument is a pointer to data relevant to the callback.  The memory it points to is only
+         * guaranteed to be available for the duration of the callback.
+         */
+        util::ChainedCallback<void(ClientEventType,void*)>  ClientEventCallback;
+
+        /** getStationAliases returns a vector of all the known station aliases.
+         *
+         * @note this method uses a copy in place to prevent race inside the
+         *  client code and consumers and is consequentially expensive.  Please
+         *  only call it after you get a notification of there being a change,
+         *  and even then, only once.
+         */
+        std::vector<afv::dto::Station> getStationAliases() const;
+
+        void startAudio();
+        void stopAudio();
+
+        /** logAudioStatistics dumps the internal data about over/underflow totals to the AFV log.
+         *
+         */
+        void logAudioStatistics();
+
+        std::shared_ptr<const afv::RadioSimulation> getRadioSimulation() const;
+
     protected:
         struct ClientRadioState {
             int mCurrentFreq;
@@ -102,164 +272,6 @@ namespace afv_native {
         std::string mAudioInputDeviceName;
         std::string mAudioOutputDeviceName;
     public:
-        /** Construct an AFV-native Pilot Client.
-         *
-         * The pilot client will be in the disconnected state and ready to have
-         * the credentials, position and other configuration options set before
-         * attempting to connect.
-         *
-         * The containing client must provide and run a libevent eventloop for
-         * AFV-native to attach its operations against, and must ensure that
-         * this loop is run constantly, even when the client is not connected.
-         * (It's used for some tear-down operations which must run to completion
-         * after the client is shut-down if possible.)
-         *
-         * @param evBase an initialised libevent event_base to register the client's
-         *      asynchronous IO and deferred operations against.
-         * @param resourceBasePath A relative or absolute path to where the AFV-native
-         *      resource files are located.
-         * @param baseUrl The baseurl for the AFV API server to connect to.  The
-         *      default should be used in most cases.
-         * @param numRadios The number of transceivers to instantiate for this
-         *      client.
-         * @param clientName The name of this client to advertise to the
-         *      audio-subsystem.
-         */
-        Client(
-                struct event_base *evBase,
-                const std::string &resourceBasePath,
-                unsigned int numRadios = 2,
-                const std::string &clientName = "AFV-Native",
-                std::string baseUrl = "https://voice1.vatsim.uk");
-
-        /** setBaseUrl is used to change the API URL.
-         *
-         * @note This affects all future API requests, but any in flight will not
-         * be cancelled and resent.
-         *
-         * @param newUrl the new URL (without at trailing slash).
-         */
-        void setBaseUrl(std::string newUrl);
-
-        /** set the ClientPosition to report with the next transceiver update.
-         *
-         * @param lat the client latitude in decimal degrees.
-         * @param lon the client longitude in decimal degrees.
-         * @param amslm the client's altitude above mean-sea-level in meters.
-         * @param aglm the client's altitude above ground level in meters.
-         */
-        void setClientPosition(double lat, double lon, double amslm, double aglm);
-
-        /** set the radio frequency for the nominated radio.
-         *
-         * This method will invoke an immediate transceiver set update.
-         *
-         * @param radioNum the ordinal of the radio to tune
-         * @param freq the frequency in Hz
-         */
-        void setRadioState(unsigned int radioNum, int freq);
-
-        /** set the radio the Ptt will control.
-         *
-         * @param radioNum the ordinal fo the radio that will transmit when PTT
-         *     is pressed.
-         */
-        void setTxRadio(unsigned int radioNum);
-
-        void setRadioGain(unsigned int radioNum, float gain);
-
-        /** sets the PTT (push-to-talk) state for the radio.
-         *
-         * @note If the radio frequencies are out of sync with the server, this will
-         * initiate an immediate transceiver set update and the Ptt will remain
-         * blocked/guarded until the update has been acknowledged.
-         *
-         * @param pttState true to start transmitting, false otherwise.
-         */
-        void setPtt(bool pttState);
-
-        /** setCredentials sets the user Credentials for this client.
-         *
-         * @note This only affects future attempts to connect.
-         *
-         * @param username The user's CID or username.
-         * @param password The user's password
-         */
-        void setCredentials(const std::string &username, const std::string &password);
-
-        /** setCallsign sets the user's callsign for this client.
-         *
-         * @note This only affects future attempts to connect.
-         *
-         * @param callsign the callsign to use.
-         */
-        void setCallsign(std::string callsign);
-
-        void setAudioApi(audio::AudioDevice::Api api);
-        void setAudioInputDevice(std::string inputDevice);
-        void setAudioOutputDevice(std::string outputDevice);
-
-        /** isAPIConnected() indicates if the API Server connection is up.
-         *
-         * @return true if the API server connection is good or in the middle of
-         * reauthenticating a live session.  False if it is yet to authenticate,
-         * or is not connected at all.
-         */
-        bool isAPIConnected() const;
-        bool isVoiceConnected() const;
-
-        /** connect() starts the Client connecting to the API server, then establishing the voice session.
-         *
-         * In order for this to work, the credentials, callsign and audio device must be configured first,
-         * and you should have already set the clientPosition and radio states once.
-         *
-         * @return true if the connection process was able to start, false if key data is missing or an
-         *  early failure occured.
-         */
-        bool connect();
-
-        /** disconnect() tears down the voice session and discards the authentication session data.
-         *
-         */
-        void disconnect();
-
-        double getInputPeak() const;
-        double getInputVu() const;
-
-        virtual ~Client();
-
-        bool getEnableInputFilters() const;
-        void setEnableInputFilters(bool enableInputFilters);
-        void setEnableOutputEffects(bool enableEffects);
-
-        /** ClientEventCallback provides notifications when certain client events occur.  These can be used to
-         * provide feedback within the client itself without needing to poll Client's methods.
-         *
-         * The callbacks take two paremeters-  the first is the ClientEventType which informs the client what type
-         * of event occured.
-         *
-         * The second argument is a pointer to data relevant to the callback.  The memory it points to is only
-         * guaranteed to be available for the duration of the callback.
-         */
-        util::ChainedCallback<void(ClientEventType,void*)>  ClientEventCallback;
-
-        /** getStationAliases returns a vector of all the known station aliases.
-         *
-         * @note this method uses a copy in place to prevent race inside the
-         *  client code and consumers and is consequentially expensive.  Please
-         *  only call it after you get a notification of there being a change,
-         *  and even then, only once.
-         */
-         std::vector<afv::dto::Station> getStationAliases() const;
-
-        void startAudio();
-        void stopAudio();
-
-        /** logAudioStatistics dumps the internal data about over/underflow totals to the AFV log.
-         *
-         */
-        void logAudioStatistics();
-
     };
 }
 

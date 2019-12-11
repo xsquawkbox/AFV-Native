@@ -52,7 +52,7 @@ namespace afv_native {
          */
         const int frameTimeOut = 10;
 
-        /** AfvRemoteAudioSource takes a stream of IAudio DTOs and stores them in an appropriately tuned jitterbuffer.
+        /** RemoveVoiceSource takes a stream of IAudio DTOs and stores them in an appropriately tuned jitterbuffer.
          *
          * These can then be demand polled by a consumer which will pull the packets from the jitterBuffer and run them
          * through the decoder.
@@ -60,7 +60,7 @@ namespace afv_native {
          * @note this is analogous to the GeoVR CallsignSampleProvider, but without the effects pass which is handled
          * elsewhere.
          */
-    class RemoteVoiceSource: public audio::ISampleSource {
+        class RemoteVoiceSource: public audio::ISampleSource {
         protected:
             JitterBuffer *mJitterBuffer;
             OpusDecoder *mDecoder;

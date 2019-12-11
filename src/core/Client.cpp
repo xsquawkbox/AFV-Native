@@ -459,3 +459,7 @@ void Client::logAudioStatistics() {
     }
 }
 
+std::shared_ptr<const afv::RadioSimulation> Client::getRadioSimulation() const {
+    return mRadioSim;
+}
+
