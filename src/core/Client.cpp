@@ -239,7 +239,7 @@ void Client::startAudio()
 {
     if (!mAudioDevice) {
         LOG("afv::Client", "Initialising Audio...");
-        mAudioDevice = std::make_shared<audio::AudioDevice>(
+        mAudioDevice = audio::AudioDevice::makeDevice(
                 mClientName,
                 mAudioOutputDeviceName,
                 mAudioInputDeviceName,
@@ -457,5 +457,9 @@ void Client::logAudioStatistics() {
         LOG("Client", "Output Buffer Underflows: %d", mAudioDevice->OutputUnderflows.load());
         LOG("Client", "Input Buffer Overflows: %d", mAudioDevice->InputOverflows.load());
     }
+}
+
+std::shared_ptr<const afv::RadioSimulation> Client::getRadioSimulation() const {
+    return mRadioSim;
 }
 

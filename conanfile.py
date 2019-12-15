@@ -2,7 +2,7 @@ from conans import ConanFile, CMake, tools
 
 class AfvNativeConan(ConanFile):
     name = "AFV-Native"
-    version = "0.9.2"
+    version = "0.9.3"
     license = "3-Clause BSD"
     author = "Chris Collins <kuroneko@sysadninjas.net>"
     url = "https://github.com/xsquawkbox/AFV-Native"
@@ -12,10 +12,12 @@ class AfvNativeConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
+        "audio_library": ["portaudio", "soundio"],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
+        "audio_library": "portaudio",
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,
@@ -33,7 +35,6 @@ class AfvNativeConan(ConanFile):
         "libevent/2.1.11@bincrafters/stable",
         "libopus/1.3.1@xsquawkbox/testing",
         "speexdsp/1.2.0@xsquawkbox/devel",
-        "libsoundio/2.0.0@xsquawkbox/devel",
     ]
     build_requires = [
         "gtest/1.8.1@bincrafters/stable",
@@ -70,12 +71,19 @@ class AfvNativeConan(ConanFile):
         elif self.settings.os == 'Macos':
             self.options['libcurl'].darwin_ssl = False
 
+    def requirements(self):
+        if self.options.audio_library == "soundio":
+            self.requires("libsoundio/2.0.0@xsquawkbox/devel")
+        elif self.options.audio_library == "portaudio":
+            self.requires("portaudio/v190600.20161030@bincrafters/stable")
+
     def source(self):
         pass
 
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.configure(source_folder=".")
+        cmake.definitions["AFV_NATIVE_AUDIO_LIBRARY"] = self.options.audio_library
         return cmake
 
     def build(self):

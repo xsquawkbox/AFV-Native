@@ -39,77 +39,104 @@
 #include <map>
 #include <vector>
 #include <atomic>
-#include <soundio/soundio.h>
 
 #include "afv-native/audio/ISampleSink.h"
 #include "afv-native/audio/ISampleSource.h"
 
 namespace afv_native {
     namespace audio {
+        /**
+         * AudioDevice provides the Platform/Interface agnostic interface to the
+         * sound devices.
+         *
+         * The actual audio device drivers extend this abstract class and implement
+         * the constructor and device probe functions as necessary.
+         */
         class AudioDevice {
-        private:
-            static void staticSioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max);
-            static void staticSioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max);
-            void sioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max);
-            void sioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max);
-            static void staticSioOutputUnderflowCallback(struct SoundIoOutStream *stream);
-            static void staticSioOutputErrorCallback(struct SoundIoOutStream *stream, int err);
-            static void staticSioInputOverflowCallback(struct SoundIoInStream *stream);
-            static void staticSioInputErrorCallback(struct SoundIoInStream *stream, int err);
-
         protected:
-            unsigned mApi;
-            std::string mUserStreamName;
-            std::string mOutputDeviceName;
-            std::string mInputDeviceName;
-
-            SoundIo *mSoundIO;
-            SoundIoInStream *mInputStream;
-            SoundIoOutStream *mOutputStream;
-            bool mOutputIsStereo;
-
-            SoundIoRingBuffer *mInputRingBuffer;
-            SoundIoRingBuffer *mOutputRingBuffer;
-
             std::shared_ptr<ISampleSink> mSink;
             std::shared_ptr<ISampleSource> mSource;
 
-            static size_t optimumFrameCount(size_t staleFrames, size_t min, size_t max);
-
-            SoundIoDevice * getInputDeviceForId(const std::string &deviceId);
-            SoundIoDevice * getOutputDeviceForId(const std::string &deviceId);
+            /** Ensures data within the abstract is zeroed.   Should always be called via
+             * the initialiser chain of any subclasses.
+             */
+            AudioDevice();
 
         public:
+            /** Abstract API ID type - it is up to the implementing driver to ensure that
+             * the mapping is uniform in any given session.  Persistent mapping of values
+             * is not guaranteed between sound backends or successive executions of the
+             * code.  A uniform method for determining API ID should be provided by the
+             * driver.
+             */
             typedef unsigned int Api;
 
+            /** DeviceInfo is a uniform structure by which API implementations can return
+             * information about known devices.  The "id" value should be used as an
+             * argument to the constructor of the driver instance to set the desired device.
+             */
             struct DeviceInfo {
                 std::string name;
                 std::string id;
-                explicit DeviceInfo(const SoundIoDevice *src);
+                explicit DeviceInfo(std::string name, std::string id = "");
             };
 
-            explicit AudioDevice(
-                    const std::string &userStreamName,
-                    const std::string &outputDeviceName,
-                    const std::string &inputDeviceName,
-                    Api audioApi=-1);
             virtual ~AudioDevice();
-            bool open();
-            void close();
 
-            void setSource(std::shared_ptr<ISampleSource> newSrc);
-            void setSink(std::shared_ptr<ISampleSink> newSink);
+            /** open() should open and start the playback and capture of the nominated audio
+             * streams that this device is bound to.  If the streams are already playing,
+             * then it should return success.
+             *
+             * @return true if open() was successful, false otherwise.
+             */
+            virtual bool open() = 0;
 
+            /** close() should stop and shutdown the playback and capture of the nominated
+             * audio streams.  If the streams are already stopped, it must do nothing.
+             */
+            virtual void close() = 0;
+
+            /** setSource sets the ISampleSource for this AudioDevice.
+             *
+             * Any existing source will have it's pointer released.
+             *
+             * This can be set to the invalid/empty pointer to disable the source, in which
+             * case the device should output silence.
+             *
+             * @param newSrc a shared_ptr to the new source.
+             */
+            virtual void setSource(std::shared_ptr<ISampleSource> newSrc);
+
+            /** setSink sets the ISampleSink for this AudioDevice.
+             *
+             * Any existing sink will have its pointer released.
+             *
+             * This can be set to the invalid/empty pointer to disable the sink, in which
+             * case the device should simply discard any samples received from the hardware.
+             *
+             * @param newSink a shared_ptr to the new Sink
+             */
+            virtual void setSink(std::shared_ptr<ISampleSink> newSink);
+
+            /** OutputUnderflows is a monotonic counter of the number of playback buffer
+             * underflows that have occurred since the AudioDevice was constructed.
+             */
+            std::atomic<uint32_t>   OutputUnderflows;
+
+            /** InputOverflows is a monotonic counter of the number of recording buffer
+             * overflows that have occurred since the AudioDevice was constructed.
+             */
+            std::atomic<uint32_t>   InputOverflows;
+
+            /* default implementation hooks... */
             static std::map<Api,std::string> getAPIs();
             static std::map<int,DeviceInfo> getCompatibleInputDevicesForApi(AudioDevice::Api api);
             static std::map<int,DeviceInfo> getCompatibleOutputDevicesForApi(AudioDevice::Api api);
-
-            std::atomic<uint32_t>   OutputUnderflows;
-            std::atomic<uint32_t>   InputOverflows;
-
-        protected:
-            static bool isAbleToOpen(SoundIoDevice *device_info, bool for_output = false);
-
+            static std::shared_ptr<AudioDevice> makeDevice(
+                    const std::string &userStreamName,
+                    const std::string &outputDeviceId,
+                    const std::string &inputDeviceId,
+                    Api audioApi=-1);
         };
     }
 }

@@ -53,6 +53,10 @@
 namespace afv_native {
     namespace afv {
 
+        /** RadioState is the internal state object for each radio within a RadioSimulation.
+         *
+         * It tracks the current playback position of the mixing effects, the channel frequency and gain.
+         */
         class RadioState {
         public:
             unsigned int Frequency;
@@ -65,19 +69,79 @@ namespace afv_native {
             bool mBypassEffects;
         };
 
+        /** CallsignMeta is the per-packetstream metadata stored within the RadioSimulation object.
+         *
+         * It's used to hold the RemoteVoiceSource object for that callsign+channel combination,
+         * and the list of transceivers that this packet stream relates to.
+         */
         struct CallsignMeta {
             std::shared_ptr<RemoteVoiceSource> source;
             std::vector<dto::RxTransceiver> transceivers;
             CallsignMeta();
         };
 
+        /** RadioSimulation provides the foundation for handling radio channels and mixing them
+         * into an audio stream, as well as handling the samples from the micrphone input.
+         *
+         * The RadioSimulation object itself provides both an ISampleSource (the output from the radio
+         * stack) and an ISampleSink (the input into the voice transmission path).
+         *
+         * The implementation assumes continuous recording (and hence input into the ISampleSink methods)
+         * and instead provides the Ptt functions to control the conversion of said input into voice
+         * packets.
+         */
         class RadioSimulation:
                 public audio::ISampleSource,
                 public audio::ISampleSink,
                 public ICompressedFrameSink {
-        private:
-            static void mix_buffers(audio::SampleType *src_dst, const audio::SampleType *src2, float src2_gain = 1.0);
+        public:
+            RadioSimulation(
+                    struct event_base *evBase,
+                    std::shared_ptr<EffectResources> resources,
+                    cryptodto::UDPChannel *channel,
+                    unsigned int radioCount);
+            virtual ~RadioSimulation();
+            void rxVoicePacket(const afv::dto::AudioRxOnTransceivers &pkt);
+
+            void setCallsign(const std::string &newCallsign);
+            void setFrequency(unsigned int radio, unsigned int frequency);
+            void setGain(unsigned int radio, float gain);
+            void setTxRadio(unsigned int radio);
+
+            void setPtt(bool pressed);
+            void setUDPChannel(cryptodto::UDPChannel *newChannel);
+
+            double getVu() const;
+            double getPeak() const;
+
+            void reset();
+
+            bool getEnableInputFilters() const;
+            void setEnableInputFilters(bool enableInputFilters);
+
+            void setEnableOutputEffects(bool enableEffects);
+
+            void putAudioFrame(const audio::SampleType *bufferIn) override;
+            audio::SourceStatus getAudioFrame(audio::SampleType *bufferOut) override;
+
+            /** Contains the number of IncomingAudioStreams known to the simulation stack */
+            std::atomic<uint32_t> IncomingAudioStreams;
+
+            /** Contains the number of IncomingAudioStreams playing currently.  Allocated using
+             * new to ensure that it cannot be resized or relocated.
+             */
+            std::atomic<uint32_t> *AudiableAudioStreams;
+
         protected:
+            /** maintenanceTimerIntervalMs is the internal in milliseconds between periodic cleanups
+             * of the inbound audio frame objects.
+             *
+             * This maintenance occurs in the main execution thread as not to hold the audio playback thread
+             * unnecessarily, particularly as it may involve alloc/free operations.
+             *
+             * The current constant of 30s should be frequent enough to prevent massive memory issues, without
+             * causing performance issues.
+             */
             static const int maintenanceTimerIntervalMs = 30 * 1000; /* every 30s */
 
             struct event_base *mEvBase;
@@ -122,35 +186,19 @@ namespace afv_native {
                     const std::map<void *, audio::SampleType[audio::frameSizeSamples]> &sampleCache,
                     size_t rxIter);
 
-        public:
-            void putAudioFrame(const audio::SampleType *bufferIn) override;
-            audio::SourceStatus getAudioFrame(audio::SampleType *bufferOut) override;
-
-            RadioSimulation(
-                    struct event_base *evBase,
-                    std::shared_ptr<EffectResources> resources,
-                    cryptodto::UDPChannel *channel,
-                    unsigned int radioCount);
-            virtual ~RadioSimulation();
-            void rxVoicePacket(const afv::dto::AudioRxOnTransceivers &pkt);
-
-            void setCallsign(const std::string &newCallsign);
-            void setFrequency(unsigned int radio, unsigned int frequency);
-            void setGain(unsigned int radio, float gain);
-            void setTxRadio(unsigned int radio);
-
-            void setPtt(bool pressed);
-            void setUDPChannel(cryptodto::UDPChannel *newChannel);
-
-            double getVu() const;
-            double getPeak() const;
-
-            void reset();
-
-            bool getEnableInputFilters() const;
-            void setEnableInputFilters(bool enableInputFilters);
-
-            void setEnableOutputEffects(bool enableEffects);
+            /** mix_buffers is a utility function that mixes two buffers of audio together.  The src_dst
+             * buffer is assumed to be the final output buffer and is modified by the mixing in place.
+             * src2 is read-only and will be scaled by the provided linear gain.
+             *
+             * @note as this mixer has some really fundamental assumptions about buffer alignment which
+             * are required as it uses SSE2 intrinsics to perform the mixing.  These requirements are
+             * met inside elsewhere inside this class.
+             *
+             * @param src_dst pointer to the source and destination buffer.
+             * @param src2 pointer to the origin of the samples to mix in.
+             * @param src2_gain linear gain to apply to src2.
+             */
+            static void mix_buffers(audio::SampleType *src_dst, const audio::SampleType *src2, float src2_gain = 1.0);
         };
     }
 }

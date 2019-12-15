@@ -46,34 +46,39 @@ main(int argc, char **argv)
 
         {
             LOG("audiotest", "creating audio device");
-            audio::AudioDevice soundDevice(
+            auto soundDevice = audio::AudioDevice::makeDevice(
                     "audiotest",
                     deviceId,
                     "",
                     defaultApi);
-            soundDevice.setSource(soundPlayer);
-            soundDevice.open();
+            soundDevice->setSource(soundPlayer);
+            soundDevice->open();
             LOG("audiotest", "sample should be playing");
             while (soundPlayer->isPlaying()) {
             }
             LOG("audiotest", "waiting for bufferlocks to give up");
             while (soundPlayer.use_count() > 1) {}
+
+            soundDevice->close();
+            soundDevice.reset();
         }
     }
 
     auto sine = std::make_shared<audio::SineToneSource>(160);
     {
         LOG("audiotest", "creating audio device");
-        audio::AudioDevice soundDevice(
+        auto soundDevice = audio::AudioDevice::makeDevice(
             "audiotest",
             deviceId,
             "",
             defaultApi);
-        soundDevice.setSource(sine);
-        soundDevice.open();
+        soundDevice->setSource(sine);
+        soundDevice->open();
         LOG("audiotest", "sinetone should be playing.  Press enter to end.");
         char input;
         std::cin.get( input );
+        soundDevice->close();
+        soundDevice.reset();
     }
 
     LOG("audiotest", "Exiting.");
