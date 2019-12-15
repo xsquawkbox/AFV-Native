@@ -62,9 +62,9 @@ void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink) {
     mSink = std::move(newSink);
 }
 
-AudioDevice::DeviceInfo::DeviceInfo(std::string name, std::string id) :
-        name(std::move(name)),
-        id(std::move(id))
+AudioDevice::DeviceInfo::DeviceInfo(std::string newName, std::string newId) :
+        name(std::move(newName)),
+        id(std::move(newId))
 {
     if (id.empty()) {
         id = name;
