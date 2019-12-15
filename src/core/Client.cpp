@@ -463,3 +463,7 @@ std::shared_ptr<const afv::RadioSimulation> Client::getRadioSimulation() const {
     return mRadioSim;
 }
 
+std::shared_ptr<const audio::AudioDevice> Client::getAudioDevice() const {
+    return mAudioDevice;
+}
+

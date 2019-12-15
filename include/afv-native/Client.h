@@ -219,6 +219,7 @@ namespace afv_native {
         void logAudioStatistics();
 
         std::shared_ptr<const afv::RadioSimulation> getRadioSimulation() const;
+        std::shared_ptr<const audio::AudioDevice> getAudioDevice() const;
 
     protected:
         struct ClientRadioState {
