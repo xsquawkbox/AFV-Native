@@ -64,6 +64,7 @@ Client::Client(
         mTxUpdatePending(false),
         mWantPtt(false),
         mPtt(false),
+        mAPIReconnecting(false),
         mTransceiverUpdateTimer(mEvBase, std::bind(&Client::sendTransceiverUpdate, this)),
         mClientName(clientName),
         mAudioApi(0),
@@ -173,15 +174,18 @@ void Client::voiceStateCallback(afv::VoiceSessionState state)
     switch (state) {
     case afv::VoiceSessionState::Connected:
         LOG("afv::Client", "Voice Session Connected");
+        // if we have a valid mAudioDevice, then do not attempt to restart it.  bad things will happen.
         if (!mAudioDevice) {
-            this->startAudio();
+            startAudio();
         }
+        // reset the radio sequence IDs and jitter timers (so we restart jitter timing for the new tx/rx sequence) keys, sessions, etc.
+        mRadioSim->reset();
         queueTransceiverUpdate();
         ClientEventCallback.invokeAll(ClientEventType::VoiceServerConnected, nullptr);
         break;
     case afv::VoiceSessionState::Disconnected:
         LOG("afv::Client", "Voice Session Disconnected");
-        this->stopAudio();
+        stopAudio();
         stopTransceiverUpdate();
         // bring down the API session too.
         mAPISession.Disconnect();
@@ -210,20 +214,31 @@ void Client::sessionStateCallback(afv::APISessionState state)
 {
     afv::APISessionError sessionError;
     switch (state) {
+    case afv::APISessionState::Connecting:
+        mAPIReconnecting = false;
+        break;
+    case afv::APISessionState::Reconnecting:
+        mAPIReconnecting = true;
+        LOG("afv_native::Client", "Reconnecting API Session");
+        break;
     case afv::APISessionState::Running:
         LOG("afv_native::Client", "Connected to AFV API Server");
         mVoiceSession.setCallsign(mCallsign);
         mVoiceSession.Connect();
         mAPISession.updateStationAliases();
         ClientEventCallback.invokeAll(ClientEventType::APIServerConnected, nullptr);
+        // reset the reconnection flag if it was set.
+        mAPIReconnecting = false;
         break;
     case afv::APISessionState::Disconnected:
+        mAPIReconnecting = false;
         LOG("afv_native::Client", "Disconnected from AFV API Server.  Terminating sessions");
         // because we only ever commence a normal API Session teardown from a voicesession hook,
         // we don't need to call into voiceSession in this case only.
         ClientEventCallback.invokeAll(ClientEventType::APIServerDisconnected, nullptr);
         break;
     case afv::APISessionState::Error:
+        mAPIReconnecting = false;
         LOG("afv_native::Client", "Got error from AFV API Server.  Disconnecting session");
         if (isVoiceConnected()) {
             mVoiceSession.Disconnect(false);
