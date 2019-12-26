@@ -468,7 +468,8 @@ void RadioSimulation::reset()
     mTxSequence.store(0);
     mPtt.store(false);
     mLastFramePtt = false;
-    mVoiceSink.reset();
+    // reset the voice compression codec state.
+    mVoiceSink->reset();
 }
 
 double RadioSimulation::getVu() const
