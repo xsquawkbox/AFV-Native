@@ -32,6 +32,7 @@
 */
 
 #include "afv-native/cryptodto/UDPChannel.h"
+#include "afv-native/cryptodto/dto/ChannelConfig.h"
 
 #include <cerrno>
 #include <event2/util.h>
