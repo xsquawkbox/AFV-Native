@@ -54,7 +54,7 @@ namespace afv_native {
         }
 
         class Channel {
-        private:
+        protected:
             unsigned char aeadTransmitKey[aeadModeKeySize];
             unsigned char aeadReceiveKey[aeadModeKeySize];
 

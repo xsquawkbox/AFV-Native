@@ -127,6 +127,8 @@ namespace afv_native {
             void setAddress(const std::string &address);
 
             int getLastErrno() const;
+
+            void setChannelConfig(const dto::ChannelConfig &config) override;
         };
     }
 }

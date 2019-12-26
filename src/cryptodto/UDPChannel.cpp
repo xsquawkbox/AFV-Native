@@ -41,6 +41,7 @@
 #include <windows.h>
 #include <winsock.h>
 #include <ws2ipdef.h>
+#include <afv-native/cryptodto/dto/ChannelConfig.h>
 
 #else
 #include <sys/socket.h>
@@ -275,4 +276,13 @@ void UDPChannel::unregisterDtoHandler(const std::string &dtoName)
 int UDPChannel::getLastErrno() const
 {
     return mLastErrno;
+}
+
+void UDPChannel::setChannelConfig(const dto::ChannelConfig &config) {
+    // if the channel keys change, we need to reset our rx expected sequence as the cipher
+    // has probably restarted.  We do not need to reset tx since the other end will deal.
+    if (::memcmp(aeadReceiveKey, config.AeadReceiveKey, aeadModeKeySize) != 0) {
+        receiveSequence.reset();
+    }
+    Channel::setChannelConfig(config);
 }
