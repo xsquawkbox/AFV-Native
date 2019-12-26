@@ -173,7 +173,9 @@ void Client::voiceStateCallback(afv::VoiceSessionState state)
     switch (state) {
     case afv::VoiceSessionState::Connected:
         LOG("afv::Client", "Voice Session Connected");
-        this->startAudio();
+        if (!mAudioDevice) {
+            this->startAudio();
+        }
         queueTransceiverUpdate();
         ClientEventCallback.invokeAll(ClientEventType::VoiceServerConnected, nullptr);
         break;

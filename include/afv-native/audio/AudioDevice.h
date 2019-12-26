@@ -55,7 +55,10 @@ namespace afv_native {
         class AudioDevice {
         protected:
             std::shared_ptr<ISampleSink> mSink;
+            std::mutex mSinkPtrLock;
             std::shared_ptr<ISampleSource> mSource;
+            std::mutex mSourcePtrLock;
+
 
             /** Ensures data within the abstract is zeroed.   Should always be called via
              * the initialiser chain of any subclasses.
