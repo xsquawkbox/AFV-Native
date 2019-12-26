@@ -250,9 +250,6 @@ namespace afv_native {
         bool mTxUpdatePending;
         bool mWantPtt;
         bool mPtt;
-        /// mAPIReconnecting indicates if we're hot-restarting the voice session.  If true, our stack is set up already
-        /// and we need to only fix session tokens.  We must not break the audio stream.
-        bool mAPIReconnecting;
 
         bool areTransceiversSynced() const;
         std::vector<afv::dto::Transceiver> makeTransceiverDto();

@@ -66,42 +66,6 @@ namespace afv_native {
         };
 
         class VoiceSession {
-        protected:
-            APISession &mSession;
-            std::string mCallsign;
-            std::string mBaseUrl;
-
-            void updateBaseUrl();
-
-        private:
-            http::RESTRequest mVoiceSessionSetupRequest;
-            http::RESTRequest mVoiceSessionTeardownRequest;
-            http::RESTRequest mTransceiverUpdateRequest;
-
-        protected:
-            cryptodto::UDPChannel mChannel;
-
-            event::EventCallbackTimer mHeartbeatTimer;
-            util::monotime_t mLastHeartbeatReceived;
-            event::EventCallbackTimer mHeartbeatTimeout;
-
-            VoiceSessionError mLastError;
-
-            /** setupSession use the information in the PostCallsignResponse DTO to start up
-             * the UDP session and tasks
-             * @param cresp the DTO detailing the session encryption keys, endpoint
-             *      address, and other details.
-             */
-            bool setupSession(const dto::PostCallsignResponse &cresp);
-
-            /** failSession tears down the voice session and it's UDP channel due to failure,
-             * timeout or explicit disconnect.
-             */
-            void failSession();
-
-            void sendHeartbeatCallback();
-            void receivedHeartbeat();
-            void heartbeatTimedOut();
         public:
             util::ChainedCallback<void(VoiceSessionState)> StateCallback;
 
@@ -120,6 +84,49 @@ namespace afv_native {
             cryptodto::UDPChannel & getUDPChannel();
 
             VoiceSessionError getLastError() const;
+
+        protected:
+            APISession &mSession;
+            std::string mCallsign;
+            std::string mBaseUrl;
+
+            void updateBaseUrl();
+
+            cryptodto::UDPChannel mChannel;
+
+            event::EventCallbackTimer mHeartbeatTimer;
+            util::monotime_t mLastHeartbeatReceived;
+            event::EventCallbackTimer mHeartbeatTimeout;
+
+            VoiceSessionError mLastError;
+
+            /** setupSession use the information in the PostCallsignResponse DTO to start up
+             * the UDP session and tasks
+             *
+             * @param cresp the DTO detailing the session encryption keys, endpoint
+             *      address, and other details.
+             * @returns true if successful, false if the session couldn't be set up
+             *
+             * @note failures are usually caused by Network Socket problems - most other
+             *     causes can't fail until their callback fires.
+             */
+            bool setupSession(const dto::PostCallsignResponse &cresp);
+
+            /** failSession tears down the voice session and it's UDP channel due to failure,
+             * timeout or explicit disconnect.
+             */
+            void failSession();
+
+            void sendHeartbeatCallback();
+            void receivedHeartbeat();
+            void heartbeatTimedOut();
+
+            void sessionStateCallback(APISessionState state);
+            void voiceSessionSetupRequestCallback(http::Request *req, bool success);
+
+            http::RESTRequest mVoiceSessionSetupRequest;
+            http::RESTRequest mVoiceSessionTeardownRequest;
+            http::RESTRequest mTransceiverUpdateRequest;
         };
     }
 }

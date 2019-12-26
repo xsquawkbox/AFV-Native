@@ -74,6 +74,7 @@ VoiceSession::~VoiceSession()
 bool
 VoiceSession::Connect()
 {
+    // we cannot start the voice session if the API session is in any state OTHER than running...
     if (mSession.getState() != APISessionState::Running) {
         return false;
     }
@@ -81,43 +82,44 @@ VoiceSession::Connect()
     // fix up the request URL
     updateBaseUrl();
     mSession.setAuthenticationFor(mVoiceSessionSetupRequest);
-    mVoiceSessionSetupRequest.setCompletionCallback(
-            [this](http::Request *req, bool success) {
-                if (success) {
-                    if (req->getStatusCode() == 200) {
-                        auto *restreq = dynamic_cast<http::RESTRequest *>(req);
-                        assert(restreq != nullptr);
-                        try {
-                            auto j = restreq->getResponse();
-                            dto::PostCallsignResponse cresp;
-                            j.get_to(cresp);
-                            if (!this->setupSession(cresp)) {
-                                this->failSession();
-                            }
-                        } catch (json::exception &e) {
-                            LOG("voicesession", "exception parsing voice session setup: %s", e.what());
-                            mLastError = VoiceSessionError::BadResponseFromAPIServer;
-                            this->failSession();
-                        }
-                    } else {
-                        LOG("voicesession",
-                                "request for voice session failed: got status %d",
-                                req->getStatusCode());
-                        mLastError = VoiceSessionError::BadResponseFromAPIServer;
-                        this->failSession();
-                    }
-                } else {
-                    LOG("voicesession",
-                            "request for voice session failed: got internal error %s",
-                            req->getCurlError().c_str());
-                    mLastError = VoiceSessionError::BadResponseFromAPIServer;
-                    this->failSession();
-                }
-            });
+    mVoiceSessionSetupRequest.setCompletionCallback(std::bind(&VoiceSession::voiceSessionSetupRequestCallback, this, std::placeholders::_1, std::placeholders::_2));
     auto &transferManager = mSession.getTransferManager();
     mVoiceSessionSetupRequest.shareState(transferManager);
     mVoiceSessionSetupRequest.doAsync(transferManager);
     return true;
+}
+
+void VoiceSession::voiceSessionSetupRequestCallback(http::Request *req, bool success) {
+    if (success) {
+        if (req->getStatusCode() == 200) {
+            auto *restreq = dynamic_cast<http::RESTRequest *>(req);
+            assert(restreq != nullptr);
+            try {
+                auto j = restreq->getResponse();
+                dto::PostCallsignResponse cresp;
+                j.get_to(cresp);
+                if (!setupSession(cresp)) {
+                    failSession();
+                }
+            } catch (json::exception &e) {
+                LOG("voicesession", "exception parsing voice session setup: %s", e.what());
+                mLastError = VoiceSessionError::BadResponseFromAPIServer;
+                failSession();
+            }
+        } else {
+            LOG("voicesession",
+                "request for voice session failed: got status %d",
+                req->getStatusCode());
+            mLastError = VoiceSessionError::BadResponseFromAPIServer;
+            failSession();
+        }
+    } else {
+        LOG("voicesession",
+            "request for voice session failed: got internal error %s",
+            req->getCurlError().c_str());
+        mLastError = VoiceSessionError::BadResponseFromAPIServer;
+        failSession();
+    }
 }
 
 bool VoiceSession::setupSession(const dto::PostCallsignResponse &cresp)
@@ -141,6 +143,9 @@ bool VoiceSession::setupSession(const dto::PostCallsignResponse &cresp)
             });
     mLastError = VoiceSessionError::NoError;
     StateCallback.invokeAll(VoiceSessionState::Connected);
+
+    // now that everything's been invoked, attach our callback for reconnect handling
+    mSession.StateCallback.addCallback(this, std::bind(&VoiceSession::sessionStateCallback, this, std::placeholders::_1));
     return true;
 }
 
@@ -150,6 +155,8 @@ void VoiceSession::failSession()
     mHeartbeatTimeout.disable();
     mChannel.close();
     mVoiceSessionSetupRequest.reset();
+    // before we invoke state callbacks, remove our session handler so we don't get recursive loops.
+    mSession.StateCallback.removeCallback(this);
     if (mLastError != VoiceSessionError::NoError) {
         StateCallback.invokeAll(VoiceSessionState::Error);
     } else {
@@ -250,5 +257,28 @@ void VoiceSession::updateBaseUrl()
 VoiceSessionError VoiceSession::getLastError() const
 {
     return mLastError;
+}
+
+void VoiceSession::sessionStateCallback(APISessionState state) {
+    switch (state) {
+    case afv::APISessionState::Reconnecting:
+        // disable the heartbeat timeout since we don't have a valid session and we will reestablish shortly.
+        // this will be dealt with either when we shift to Error or Disconnected state (due to API session failure),
+        // or we get the Running update from the API session which will reestablish the heartbeat timer.
+        mHeartbeatTimeout.disable();
+        break;
+    case afv::APISessionState::Running:
+        // this should only fire when we reconnect.
+        Connect();
+        break;
+    case afv::APISessionState::Disconnected:
+    case afv::APISessionState::Error:
+        if (isConnected()) {
+            failSession();
+        }
+        break;
+    default:
+        break;
+    }
 }
 
