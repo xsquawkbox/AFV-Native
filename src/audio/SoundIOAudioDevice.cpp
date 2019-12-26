@@ -183,6 +183,8 @@ bool SoundIOAudioDevice::open() {
 }
 
 void SoundIOAudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int frame_count_min, int frame_count_max) {
+    std::lock_guard<std::mutex> sourceLock(mSourcePtrLock);
+
     int ringFrames = soundio_ring_buffer_fill_count(mOutputRingBuffer) / static_cast<int>(sizeof(SampleType));
     const size_t frames = optimumFrameCount(ringFrames, frame_count_min, frame_count_max);
 
@@ -234,6 +236,8 @@ void SoundIOAudioDevice::sioWriteCallback(struct SoundIoOutStream *stream, int f
 }
 
 void SoundIOAudioDevice::sioReadCallback(struct SoundIoInStream *stream, int frame_count_min, int frame_count_max) {
+    std::lock_guard<std::mutex> sinkLock(mSinkPtrLock);
+
     // always pull the full input buffer.
     SoundIoChannelArea *bufAreas;
     int sampleCount = frame_count_max;

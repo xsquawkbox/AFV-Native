@@ -184,12 +184,17 @@ int PortAudioAudioDevice::audioCallback(
     if ((status & paOutputUnderflowed) == paOutputUnderflowed) {
         OutputUnderflows.fetch_add(1);
     }
-    if (mSink && inputBuffer) {
-        for (size_t i = 0; i < nFrames; i += frameSizeSamples) {
-            mSink->putAudioFrame(reinterpret_cast<const float *>(inputBuffer) + i);
+    {
+        std::lock_guard<std::mutex> sinkGuard(mSinkPtrLock);
+        if (mSink && inputBuffer) {
+            for (size_t i = 0; i < nFrames; i += frameSizeSamples) {
+                mSink->putAudioFrame(reinterpret_cast<const float *>(inputBuffer) + i);
+            }
         }
     }
     if (outputBuffer) {
+        std::lock_guard<std::mutex> sourceGuard(mSourcePtrLock);
+
         for (size_t i = 0; i < nFrames; i += frameSizeSamples) {
             if (mSource) {
                 SourceStatus rv;

@@ -39,6 +39,7 @@
 #include <map>
 #include <vector>
 #include <atomic>
+#include <mutex>
 
 #include "afv-native/audio/ISampleSink.h"
 #include "afv-native/audio/ISampleSource.h"

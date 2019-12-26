@@ -44,7 +44,9 @@ using namespace std;
 
 AudioDevice::AudioDevice():
     mSink(),
+    mSinkPtrLock(),
     mSource(),
+    mSourcePtrLock(),
     OutputUnderflows(0),
     InputOverflows(0)
 {
@@ -55,10 +57,14 @@ AudioDevice::~AudioDevice()
 }
 
 void AudioDevice::setSource(std::shared_ptr<ISampleSource> newSrc) {
+    std::lock_guard<std::mutex> sourceGuard(mSourcePtrLock);
+
     mSource = std::move(newSrc);
 }
 
 void AudioDevice::setSink(std::shared_ptr<ISampleSink> newSink) {
+    std::lock_guard<std::mutex> sinkGuard(mSinkPtrLock);
+
     mSink = std::move(newSink);
 }
 
