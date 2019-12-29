@@ -139,7 +139,6 @@ APISession::_authenticationCallback(http::RESTRequest *req, bool success)
             using namespace jwt::params;
             std::error_code ec;
             auto dec_token = jwt::decode(mBearerToken, algorithms({"none"}), ec, verify(false));
-            //FIXME: report errors better.
             if (ec) {
                 LOG("APISession", "couldn't parse bearer token: %s", ec.message().c_str());
 	            mBearerToken = "";
