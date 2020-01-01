@@ -33,7 +33,7 @@ class AfvNativeConan(ConanFile):
         "openssl/1.1.1d",
         "libcurl/7.66.0@bincrafters/stable",
         "libevent/2.1.11@bincrafters/stable",
-        "libopus/1.3.1@xsquawkbox/testing",
+        "libopus/1.3.1@xsquawkbox/devel",
         "speexdsp/1.2.0@xsquawkbox/devel",
     ]
     build_requires = [
