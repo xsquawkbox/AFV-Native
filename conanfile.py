@@ -28,18 +28,18 @@ class AfvNativeConan(ConanFile):
     }
     generators = "cmake"
     requires = [
-        "msgpack/3.2.0@bincrafters/stable",
-        "jsonformoderncpp/3.7.0@vthiery/stable",
+        "msgpack/[~3.2.0]@bincrafters/stable",
+        "jsonformoderncpp/[~3.7.0]@vthiery/stable",
         "openssl/1.1.1d",
-        "libcurl/7.66.0@bincrafters/stable",
-        "libevent/2.1.11@bincrafters/stable",
+        "libcurl/[~7.68.0]",
+        "libevent/[~2.1.11]",
         "libopus/1.3.1@xsquawkbox/testing",
         "speexdsp/1.2.0@xsquawkbox/devel",
     ]
     build_requires = [
-        "gtest/1.8.1@bincrafters/stable",
+        "gtest/[~1.8.1]",
         "glew/2.2.0rc2@xsquawkbox/devel", # used for the test application.
-        "sdl2/2.0.9@bincrafters/stable", # also used for the test application
+        "sdl2/[~2.0.9]@bincrafters/stable", # also used for the test application
     ]
     exports_sources = [
         "docs/*",
