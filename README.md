@@ -11,7 +11,7 @@ for your needs.
 
 AFV-Native has the following goals:
 
-* Licensing must remain compatible with XSquawkBox (which is effectively propritary and 
+* Licensing must remain compatible with XSquawkBox (which is effectively proprietary and 
   requires static linking for distribution/support reasons, so GPL-like licenses are not
   acceptable).  The BSD 3-Clause has been chosen for AFV-Native itself.
 
@@ -19,7 +19,7 @@ AFV-Native has the following goals:
 
 * Must work fairly uniformly on the big three.
 
-* Only needs to work on architecutres where there's a meaningful piece of software 
+* Only needs to work on architectures where there's a meaningful piece of software 
   to integrate with - that is, a pilot or ATC simulator and client.
 
 * Must have a reasonably straight-forward API for client developers.
@@ -52,6 +52,8 @@ conan remote add xsquawkbox-public https://api.bintray.com/conan/akuneko/xsquawk
 conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
 ```
 
+This will let you find the packages required that are not published to `conan-center` (yet)
+
 You will also need a suitable compiler.
 
 Tested compilers are:
@@ -59,7 +61,6 @@ Tested compilers are:
 * MSVC 2019 (Windows)
 * apple-clang (macOS)
 
-This will let you find the packages required that are not published to `conan-center` (yet)
 
 ### Building
 
@@ -88,13 +89,13 @@ It explictly is written to work with:
 * Macos compiled using apple-clang.
 
 At this time, AFV-Native only implements as much as required for pilot clients.  It doesn't understand the 
-inter-controller direct voice controls, nor does it include support for crosscoupling or multi-trannsmitter voice 
+inter-controller direct voice controls, nor does it include support for cross-coupling or multi-transmitter voice 
 (although all the groundwork is there and when those systems are standardised, they can be incorporated fairly easily) 
 
 For the most part, it should be OS independent, but some of the libraries it uses may not work with other operating 
 systems.
 
-It should be possible to port this to LittleEndian ARM with a bit of effort (mostly deoptimising the mixer and a few 
+It should be possible to port this to LittleEndian ARM with a bit of effort (mostly de-optimising the mixer and a few 
 other places where SIMD is used).
 
 BigEndian will require significant attention in the CryptoDto code paths as the serialisation code
