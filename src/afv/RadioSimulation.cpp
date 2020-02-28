@@ -94,6 +94,9 @@ RadioSimulation::RadioSimulation(
     setUDPChannel(channel);
     mMaintenanceTimer.enable(maintenanceTimerIntervalMs);
     AudiableAudioStreams = new std::atomic<uint32_t>[radioCount];
+    for (int i = 0; i < radioCount; i++) {
+        AudiableAudioStreams[i].store(0);
+    }
 }
 
 void RadioSimulation::putAudioFrame(const audio::SampleType *bufferIn)
