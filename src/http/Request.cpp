@@ -2,7 +2,7 @@
  *
  * This file is part of AFV-Native.
  *
- * Copyright (c) 2015,2019 Christopher Collins
+ * Copyright (c) 2015,2019-2020 Christopher Collins
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -109,7 +109,7 @@ bool Request::setupHandle()
     curl_easy_setopt(mCurlHandle, CURLOPT_WRITEFUNCTION, curlWriteCallback);
     curl_easy_setopt(mCurlHandle, CURLOPT_WRITEDATA, this);
     curl_easy_setopt(mCurlHandle, CURLOPT_ERRORBUFFER, mCurlErrorBuffer);
-    curl_easy_setopt(mCurlHandle, CURLOPT_USERAGENT, "AFV-Native/0.9");
+    curl_easy_setopt(mCurlHandle, CURLOPT_USERAGENT, "AFV-Native/1.0");
     curl_easy_setopt(mCurlHandle, CURLOPT_NOPROGRESS, 0);
     curl_easy_setopt(mCurlHandle, CURLOPT_XFERINFOFUNCTION, curlTransferInfoCallback);
     curl_easy_setopt(mCurlHandle, CURLOPT_XFERINFODATA, this);
@@ -118,6 +118,9 @@ bool Request::setupHandle()
     if (mHeaders != nullptr) {
         curl_easy_setopt(mCurlHandle, CURLOPT_HTTPHEADER, mHeaders);
     }
+
+    /* Disable Nagle because Mac says so.... */
+    curl_easy_setopt(mCurlHandle, CURLOPT_TCP_NODELAY, 1);
 
     /*FIXME:  We do not verify peers (yet).  This is not a code issue, but a larger OpenSSL management one.
      *
