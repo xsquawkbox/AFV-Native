@@ -34,6 +34,8 @@
 #ifndef AFV_NATIVE_RADIOSIMULATION_H
 #define AFV_NATIVE_RADIOSIMULATION_H
 
+#include "afv-native/audio/VHFFilterSource.h"
+
 #include <memory>
 #include <unordered_map>
 
@@ -76,6 +78,7 @@ namespace afv_native {
          */
         struct CallsignMeta {
             std::shared_ptr<RemoteVoiceSource> source;
+            audio::VHFFilterSource voiceFilter;
             std::vector<dto::RxTransceiver> transceivers;
             CallsignMeta();
         };
@@ -184,6 +187,7 @@ namespace afv_native {
         private:
             bool _process_radio(
                     const std::map<void *, audio::SampleType[audio::frameSizeSamples]> &sampleCache,
+                    std::map<void *, audio::SampleType[audio::frameSizeSamples]> &eqSampleCache,
                     size_t rxIter);
 
             /** mix_buffers is a utility function that mixes two buffers of audio together.  The src_dst

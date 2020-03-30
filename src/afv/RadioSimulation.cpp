@@ -31,6 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "afv-native/audio/VHFFilterSource.h"
 #include "afv-native/afv/RadioSimulation.h"
 
 #include <cmath>
@@ -45,9 +46,9 @@ using namespace afv_native::afv;
 
 const float fxClickGain = 1.0f;
 
-const float fxBlockToneGain = 0.40f;
+const float fxBlockToneGain = 0.22f;
 
-const float fxWhiteNoiseGain = 0.17f;
+const float fxWhiteNoiseGain = 0.01f;
 
 const float fxHfWhiteNoiseGain = 0.6f;
 
@@ -55,6 +56,7 @@ const float fxBlockToneFreq = 180.0f;
 
 CallsignMeta::CallsignMeta():
         source(),
+        voiceFilter(),
         transceivers()
 {
     source = std::make_shared<RemoteVoiceSource>();
@@ -177,7 +179,8 @@ freqIsHF(unsigned int freq)
 
 bool RadioSimulation::_process_radio(
         const std::map<void *, audio::SampleType[audio::frameSizeSamples]> &sampleCache,
-        size_t rxIter)
+        std::map<void *, audio::SampleType[audio::frameSizeSamples]> &eqSampleCache,
+                                     size_t rxIter)
 {
     if (mPtt.load() && mTxRadio == rxIter) {
         // don't analyze and mix-in the radios transmitting, but suppress the
@@ -203,9 +206,9 @@ bool RadioSimulation::_process_radio(
                 float crackleFactor = 0.0f;
                 if (!mRadioState[rxIter].mBypassEffects) {
                     crackleFactor = static_cast<float>(
-                            (exp(tx.DistanceRatio) * pow(tx.DistanceRatio, -4.0) / 350.0) - 0.00776652);
+                            (exp(tx.DistanceRatio) * pow(tx.DistanceRatio, -2.5) / 350.0) - 0.00776652);
                     crackleFactor = fmax(0.0f, crackleFactor);
-                    crackleFactor = fmin(0.20f, crackleFactor);
+                    crackleFactor = fmin(0.15f, crackleFactor);
 
                     if (freqIsHF(mRadioState[rxIter].Frequency)) {
                         voiceGain = 0.38f;
@@ -220,10 +223,23 @@ bool RadioSimulation::_process_radio(
         if (mUseStream) {
             // then include this stream.
             try {
-                mix_buffers(
-                        mMixingBuffer,
-                        sampleCache.at(srcPair.second.source.get()),
-                        voiceGain * mRadioState[rxIter].Gain);
+                if (mRadioState[rxIter].mBypassEffects) {
+                    mix_buffers(
+                            mMixingBuffer,
+                            sampleCache.at(srcPair.second.source.get()),
+                            voiceGain * mRadioState[rxIter].Gain);
+                } else {
+                    void *sPtr = srcPair.second.source.get();
+                    auto eqCacheIter = eqSampleCache.find(sPtr);
+                    if (eqCacheIter == eqSampleCache.end()) {
+                        srcPair.second.voiceFilter.transformFrame(eqSampleCache[sPtr], sampleCache.at(sPtr));
+                    }
+                    mix_buffers(
+                            mMixingBuffer,
+                            eqSampleCache.at(sPtr),
+                            voiceGain * mRadioState[rxIter].Gain);
+
+                }
                 concurrentStreams++;
             } catch (const std::out_of_range &) {
                 LOG("RadioSimulation", "internal error:  Tried to mix uncached stream");
@@ -274,6 +290,7 @@ audio::SourceStatus RadioSimulation::getAudioFrame(audio::SampleType *bufferOut)
     std::lock_guard<std::mutex> streamGuard(mStreamMapLock);
 
     std::map<void *, audio::SampleType[audio::frameSizeSamples]> sampleCache;
+    std::map<void *, audio::SampleType[audio::frameSizeSamples]> eqSampleCache;
 
     uint32_t allStreams = 0;
     // first, pull frames from all active audio sources.
@@ -295,7 +312,7 @@ audio::SourceStatus RadioSimulation::getAudioFrame(audio::SampleType *bufferOut)
 
     size_t rxIter = 0;
     for (rxIter = 0; rxIter < mRadioState.size(); rxIter++) {
-        _process_radio(sampleCache, rxIter);
+        _process_radio(sampleCache, eqSampleCache, rxIter);
     } // rxIter
     ::memcpy(bufferOut, mMixingBuffer, sizeof(audio::SampleType) * audio::frameSizeSamples);
     return audio::SourceStatus::OK;

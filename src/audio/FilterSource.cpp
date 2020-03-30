@@ -1,8 +1,8 @@
-/* audio/SineToneSource.cpp
+/* audio/FilterSource.cpp
  *
  * This file is part of AFV-Native.
  *
- * Copyright (c) 2019 Christopher Collins
+ * Copyright (c) 2020 Christopher Collins
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,27 +30,53 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
 */
-
-#include "afv-native/audio/SineToneSource.h"
-
-#include <cmath>
+#include <memory>
+#include <afv-native/audio/IFilter.h>
+#include "afv-native/audio/FilterSource.h"
 
 using namespace ::afv_native::audio;
 using namespace ::std;
 
-SineToneSource::SineToneSource(double freqHz, float gain):
-    mFrequency(freqHz),
-    mGain(gain),
-    mFillCount(0)
+FilterSource::FilterSource(std::shared_ptr<ISampleSource> srcSource):
+    mBypass(false),
+    mUpstream(std::move(srcSource)),
+    mFilters()
 {
 }
 
-SourceStatus SineToneSource::getAudioFrame(SampleType *bufferOut)
+FilterSource::~FilterSource()
 {
-    const double sinMultiplier = M_PI * 2.0 * static_cast<double>(mFrequency) / static_cast<double>(sampleRateHz);
-    for (int i = 0; i < frameSizeSamples; i++) {
-        bufferOut[i] = static_cast<SampleType>(mGain * sin(sinMultiplier * static_cast<double>(i + (frameSizeSamples * mFillCount))));
+}
+
+void FilterSource::addFilter(std::unique_ptr<IFilter> filter) {
+    mFilters.emplace_back(std::move(filter));
+}
+
+SourceStatus FilterSource::getAudioFrame(SampleType *bufferOut) {
+    if (mBypass) {
+        return mUpstream->getAudioFrame(bufferOut);
     }
-    mFillCount++;
+    SampleType thisFrame[frameSizeSamples];
+    SourceStatus upstreamStatus = mUpstream->getAudioFrame(thisFrame);
+    if (upstreamStatus != SourceStatus::OK) {
+        memset(bufferOut, 0, frameSizeBytes);
+        return upstreamStatus;
+    }
+    SampleType s = 0;
+    for (unsigned i = 0; i < frameSizeSamples; i++) {
+        s = thisFrame[i];
+        for (auto &f: mFilters) {
+            s = f->TransformOne(s);
+        }
+        bufferOut[i] = s;
+    }
     return SourceStatus::OK;
+}
+
+void FilterSource::setBypass(bool bypass) {
+    mBypass = bypass;
+}
+
+bool FilterSource::getBypass() const {
+    return mBypass;
 }

@@ -34,12 +34,13 @@
 #ifndef AFV_NATIVE_CLIENT_H
 #define AFV_NATIVE_CLIENT_H
 
+#include "afv-native/afv/RadioSimulation.h"
+
 #include <memory>
 #include <event2/event.h>
 
 #include "afv-native/event.h"
 #include "afv-native/afv/APISession.h"
-#include "afv-native/afv/RadioSimulation.h"
 #include "afv-native/afv/EffectResources.h"
 #include "afv-native/afv/VoiceSession.h"
 #include "afv-native/afv/dto/Transceiver.h"

@@ -56,6 +56,9 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/afv/dto/voice_server/Heartbeat.h
 		include/afv-native/audio/audio_params.h
 		include/afv-native/audio/AudioDevice.h
+		include/afv-native/audio/BiQuadFilter.h
+		include/afv-native/audio/FilterSource.h
+		include/afv-native/audio/IFilter.h
 		include/afv-native/audio/ISampleSink.h
 		include/afv-native/audio/ISampleSource.h
 		include/afv-native/audio/ISampleStorage.h
@@ -65,6 +68,7 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/audio/SinkFrameSizeAdjuster.h
 		include/afv-native/audio/SourceFrameSizeAdjuster.h
 		include/afv-native/audio/SpeexPreprocessor.h
+		include/afv-native/audio/VHFFilterSource.h
 		include/afv-native/audio/WavFile.h
 		include/afv-native/audio/WavSampleStorage.h
 		include/afv-native/cryptodto/Channel.h
@@ -99,6 +103,7 @@ add_library(afv_native
 		src/afv/dto/Transceiver.cpp
 		src/afv/dto/VoiceServerConnectionData.cpp
 		src/audio/AudioDevice.cpp
+		src/audio/FilterSource.cpp
 		src/audio/OutputMixer.cpp
 		src/audio/RecordedSampleSource.cpp
 		src/audio/SineToneSource.cpp
@@ -137,6 +142,12 @@ target_link_libraries(afv_native
 target_include_directories(afv_native
 		PRIVATE ${CMAKE_SOURCE_DIR}/extern/cpp-jwt/include
         PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+if(MSVC)
+	# I hate to do this this way, but we must force MSVC to define the standard math macros whereever the afv headers
+	# are used
+	target_compile_definitions(afv_native PUBLIC _USE_MATH_DEFINES)
+endif()
 
 include(GoogleTest)
 add_executable(

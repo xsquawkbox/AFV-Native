@@ -1,8 +1,8 @@
-/* audio/SineToneSource.cpp
+/* audio/FilterSource.h
  *
  * This file is part of AFV-Native.
  *
- * Copyright (c) 2019 Christopher Collins
+ * Copyright (c) 2020 Christopher Collins
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,26 +31,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "afv-native/audio/SineToneSource.h"
+#ifndef AFV_NATIVE_FILTERSOURCE_H
+#define AFV_NATIVE_FILTERSOURCE_H
 
-#include <cmath>
+#include <vector>
+#include <memory>
+#include <afv-native/audio/ISampleSource.h>
+#include <afv-native/audio/IFilter.h>
 
-using namespace ::afv_native::audio;
-using namespace ::std;
+namespace afv_native {
+    namespace audio {
 
-SineToneSource::SineToneSource(double freqHz, float gain):
-    mFrequency(freqHz),
-    mGain(gain),
-    mFillCount(0)
-{
-}
+        /** A FilterSource is a specialised Source adapter that applies multiple filters over each sample polled in a
+         * cache efficient manner.
+         *
+         * The general theory is we don't want to scan the whole sample buffer multiple times, but rather, run each
+         * filter over each input point sequentially.    This should keep the relevant coefficients in cache or in
+         * registers throughout the entire mix.
+         */
+        class FilterSource : public ISampleSource {
+        public:
+            FilterSource(std::shared_ptr<ISampleSource> srcSource);
 
-SourceStatus SineToneSource::getAudioFrame(SampleType *bufferOut)
-{
-    const double sinMultiplier = M_PI * 2.0 * static_cast<double>(mFrequency) / static_cast<double>(sampleRateHz);
-    for (int i = 0; i < frameSizeSamples; i++) {
-        bufferOut[i] = static_cast<SampleType>(mGain * sin(sinMultiplier * static_cast<double>(i + (frameSizeSamples * mFillCount))));
+            virtual ~FilterSource();
+
+            SourceStatus getAudioFrame(SampleType *bufferOut) override;
+
+            void addFilter(std::unique_ptr<IFilter> filter);
+            void setBypass(bool bypass);
+            bool getBypass() const;
+
+        protected:
+            bool mBypass;
+            std::shared_ptr<ISampleSource> mUpstream;
+            std::vector<std::unique_ptr<IFilter>> mFilters;
+
+        };
     }
-    mFillCount++;
-    return SourceStatus::OK;
 }
+
+#endif //AFV_NATIVE_FILTERSOURCE_H

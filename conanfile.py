@@ -96,3 +96,5 @@ class AfvNativeConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["afv_native"]
+        if self.settings.commpiler == 'Visual Studio':
+            self.cpp_info.defines += ["_USE_MATH_DEFINES"]

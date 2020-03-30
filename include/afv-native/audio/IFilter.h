@@ -1,8 +1,8 @@
-/* audio/SineToneSource.cpp
+/* audio/FilterSource.h
  *
  * This file is part of AFV-Native.
  *
- * Copyright (c) 2019 Christopher Collins
+ * Copyright (c) 2020 Christopher Collins
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,26 +31,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "afv-native/audio/SineToneSource.h"
+#ifndef AFV_NATIVE_IFILTER_H
+#define AFV_NATIVE_IFILTER_H
 
-#include <cmath>
+#include <afv-native/audio/audio_params.h>
 
-using namespace ::afv_native::audio;
-using namespace ::std;
-
-SineToneSource::SineToneSource(double freqHz, float gain):
-    mFrequency(freqHz),
-    mGain(gain),
-    mFillCount(0)
-{
-}
-
-SourceStatus SineToneSource::getAudioFrame(SampleType *bufferOut)
-{
-    const double sinMultiplier = M_PI * 2.0 * static_cast<double>(mFrequency) / static_cast<double>(sampleRateHz);
-    for (int i = 0; i < frameSizeSamples; i++) {
-        bufferOut[i] = static_cast<SampleType>(mGain * sin(sinMultiplier * static_cast<double>(i + (frameSizeSamples * mFillCount))));
+namespace afv_native {
+    namespace audio {
+        class IFilter {
+        public:
+            virtual SampleType TransformOne(SampleType sampleIn) = 0;
+        };
     }
-    mFillCount++;
-    return SourceStatus::OK;
 }
+
+#endif //AFV_NATIVE_IFILTER_H
