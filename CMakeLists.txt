@@ -71,6 +71,7 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/audio/VHFFilterSource.h
 		include/afv-native/audio/WavFile.h
 		include/afv-native/audio/WavSampleStorage.h
+		include/afv-native/audio/WhiteNoiseGenerator.h
 		include/afv-native/cryptodto/Channel.h
 		include/afv-native/cryptodto/dto/ICryptoDTO.h
 		include/afv-native/cryptodto/params.h
@@ -128,7 +129,7 @@ add_library(afv_native
         src/util/base64.cpp
 		src/util/monotime.cpp
 		${AFV_NATIVE_AUDIO_SOURCES}
-		)
+		include/afv-native/audio/PinkNoiseGenerator.h)
 target_link_libraries(afv_native
         PUBLIC
         CONAN_PKG::openssl

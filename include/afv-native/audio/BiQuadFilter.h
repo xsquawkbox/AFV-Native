@@ -45,28 +45,27 @@ namespace afv_native {
          * @note The BiQuadFilter is designed off of the work by Robert Bristow-Johnson as published in his
          * "Cookbook formulae for audio EQ biquad filter coefficients" as found on https://www.musicdsp.org/
          */
-        class BiQuadFilter: public IFilter {
+        class BiQuadFilter : public IFilter {
         public:
-            constexpr BiQuadFilter(float a0, float a1, float a2, float b0, float b1, float b2):
-                mA0(a0),
-                mA1(a1),
-                mA2(a2),
-                mB0(b0),
-                mB1(b1),
-                mB2(b2),
-                mHistoryIn{0, 0, 0},
-                mHistoryOut{0, 0, 0},
-                hpos(0)
-            {}
+            constexpr BiQuadFilter(float a0, float a1, float a2, float b0, float b1, float b2) :
+                    mA0(a0),
+                    mA1(a1),
+                    mA2(a2),
+                    mB0(b0),
+                    mB1(b1),
+                    mB2(b2),
+                    mHistoryIn{0, 0, 0},
+                    mHistoryOut{0, 0, 0},
+                    hpos(0) {}
 
             SampleType TransformOne(SampleType sampleIn) override {
                 hpos %= 3;
                 mHistoryIn[hpos] = sampleIn;
                 mHistoryOut[hpos] = (mB0 / mA0) * mHistoryIn[hpos]
-                        + (mB1 / mA0) * mHistoryIn[(hpos+2)%3]
-                        + (mB2 / mA0) * mHistoryIn[(hpos+1)%3]
-                        - (mA1 / mA0) * mHistoryIn[(hpos+2)%3]
-                        - (mA2 / mA0) * mHistoryIn[(hpos+1)%3];
+                                    + (mB1 / mA0) * mHistoryIn[(hpos + 2) % 3]
+                                    + (mB2 / mA0) * mHistoryIn[(hpos + 1) % 3]
+                                    - (mA1 / mA0) * mHistoryIn[(hpos + 2) % 3]
+                                    - (mA2 / mA0) * mHistoryIn[(hpos + 1) % 3];
                 return mHistoryOut[hpos++];
             }
 
@@ -126,7 +125,7 @@ namespace afv_native {
             }
 
             static BiQuadFilter peakingEqFilter(float f0, float q, float dbGain) {
-                float a =  pow(10.0f, dbGain / 40.0f);
+                float a = pow(10.0f, dbGain / 40.0f);
                 float w0 = 2.0f * M_PI * f0 / static_cast<float>(sampleRateHz);
                 float cosw0 = cos(w0);
                 float alpha = sin(w0) / (2 * q);
@@ -141,14 +140,14 @@ namespace afv_native {
             }
 
             static BiQuadFilter lowShelfFilter(float f0, float q, float dbGain) {
-                float a =  pow(10.0f, dbGain / 40.0f);
+                float a = pow(10.0f, dbGain / 40.0f);
                 float w0 = 2.0f * M_PI * f0 / static_cast<float>(sampleRateHz);
                 float cosw0 = cos(w0);
                 float alpha = sin(w0) / (2 * q);
 
                 return BiQuadFilter(
                         (a + 1.0f) + (a - 1.0f) * cosw0 + 2.0f * sqrt(a) * alpha,
-                        -2.0f * ( (a - 1.0f) + (a + 1.0f) * cosw0),
+                        -2.0f * ((a - 1.0f) + (a + 1.0f) * cosw0),
                         (a + 1.0f) + (a - 1.0f) * cosw0 - 2.0f * sqrt(a) * alpha,
                         a * ((a + 1.0f) - (a - 1.0f) * cosw0 + 2.0f * sqrt(a) * alpha),
                         2.0f * a * ((a - 1.0f) - (a + 1.0f) * cosw0),
@@ -156,18 +155,27 @@ namespace afv_native {
             }
 
             static BiQuadFilter highShelfFilter(float f0, float q, float dbGain) {
-                float a =  pow(10.0f, dbGain / 40.0f);
+                float a = pow(10.0f, dbGain / 40.0f);
                 float w0 = 2.0f * M_PI * f0 / static_cast<float>(sampleRateHz);
                 float cosw0 = cos(w0);
                 float alpha = sin(w0) / (2 * q);
 
                 return BiQuadFilter(
                         (a + 1.0f) - (a - 1.0f) * cosw0 + 2.0f * sqrt(a) * alpha,
-                        2.0f * ((a - 1.0f) - (a + 1.0f) * cosw0                         ),
+                        2.0f * ((a - 1.0f) - (a + 1.0f) * cosw0),
                         (a + 1.0f) - (a - 1.0f) * cosw0 - 2.0f * sqrt(a) * alpha,
                         a * ((a + 1.0f) + (a - 1.0f) * cosw0 + 2.0f * sqrt(a) * alpha),
-                        -2.0f * a * ((a - 1.0f) + (a + 1.0f) * cosw0                         ),
+                        -2.0f * a * ((a - 1.0f) + (a + 1.0f) * cosw0),
                         a * ((a + 1.0f) + (a - 1.0f) * cosw0 - 2.0f * sqrt(a) * alpha));
+            }
+
+            /** the pinkNoiseFilter transforms whitenoise into pink noise.
+             *
+             * It's based on the coefficients from moc.regnimmu@regnimmu on musicdsp.org
+             */
+            static constexpr BiQuadFilter pinkNoiseFilter() {
+                return {1.0f, -1.80116083982126f, 0.80257737639225f,
+                        0.04957526213389f, -0.06305581334498f, 0.01483220320740f};
             }
 
         protected:

@@ -31,15 +31,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "afv-native/audio/VHFFilterSource.h"
-#include "afv-native/afv/RadioSimulation.h"
 
 #include <cmath>
 #include <atomic>
 #include <xmmintrin.h>
 
 #include "afv-native/Log.h"
+#include "afv-native/afv/RadioSimulation.h"
 #include "afv-native/afv/dto/voice_server/AudioTxOnTransceivers.h"
+#include "afv-native/audio/VHFFilterSource.h"
+#include "afv-native/audio/PinkNoiseGenerator.h"
 
 using namespace afv_native;
 using namespace afv_native::afv;
@@ -50,13 +51,10 @@ const float fxBlockToneGain = 0.22f;
 
 const float fxWhiteNoiseGain = 0.01f;
 
-const float fxHfWhiteNoiseGain = 0.6f;
-
 const float fxBlockToneFreq = 180.0f;
 
 CallsignMeta::CallsignMeta():
         source(),
-        voiceFilter(),
         transceivers()
 {
     source = std::make_shared<RemoteVoiceSource>();
@@ -80,6 +78,7 @@ RadioSimulation::RadioSimulation(
         mTxRadio(0),
         mTxSequence(0),
         mRadioState(radioCount),
+        mChannelBuffer(nullptr),
         mMixingBuffer(nullptr),
         mFetchBuffer(nullptr),
         mVoiceSink(std::make_shared<VoiceCompressionSink>(*this)),
@@ -87,6 +86,9 @@ RadioSimulation::RadioSimulation(
         mMaintenanceTimer(mEvBase, std::bind(&RadioSimulation::maintainIncomingStreams, this)),
         mVuMeter(300 / audio::frameLengthMs) // VU is a 300ms zero to peak response...
 {
+    mChannelBuffer = reinterpret_cast<audio::SampleType *>(_mm_malloc(
+            sizeof(audio::SampleType) * audio::frameSizeSamples,
+            16));
     mMixingBuffer = reinterpret_cast<audio::SampleType *>(_mm_malloc(
             sizeof(audio::SampleType) * audio::frameSizeSamples,
             16));
@@ -182,6 +184,7 @@ bool RadioSimulation::_process_radio(
         std::map<void *, audio::SampleType[audio::frameSizeSamples]> &eqSampleCache,
                                      size_t rxIter)
 {
+    ::memset(mChannelBuffer, 0, audio::frameSizeBytes);
     if (mPtt.load() && mTxRadio == rxIter) {
         // don't analyze and mix-in the radios transmitting, but suppress the
         // effects.
@@ -223,23 +226,10 @@ bool RadioSimulation::_process_radio(
         if (mUseStream) {
             // then include this stream.
             try {
-                if (mRadioState[rxIter].mBypassEffects) {
-                    mix_buffers(
-                            mMixingBuffer,
-                            sampleCache.at(srcPair.second.source.get()),
-                            voiceGain * mRadioState[rxIter].Gain);
-                } else {
-                    void *sPtr = srcPair.second.source.get();
-                    auto eqCacheIter = eqSampleCache.find(sPtr);
-                    if (eqCacheIter == eqSampleCache.end()) {
-                        srcPair.second.voiceFilter.transformFrame(eqSampleCache[sPtr], sampleCache.at(sPtr));
-                    }
-                    mix_buffers(
-                            mMixingBuffer,
-                            eqSampleCache.at(sPtr),
-                            voiceGain * mRadioState[rxIter].Gain);
-
-                }
+                mix_buffers(
+                        mChannelBuffer,
+                        sampleCache.at(srcPair.second.source.get()),
+                        voiceGain * mRadioState[rxIter].Gain);
                 concurrentStreams++;
             } catch (const std::out_of_range &) {
                 LOG("RadioSimulation", "internal error:  Tried to mix uncached stream");
@@ -249,6 +239,10 @@ bool RadioSimulation::_process_radio(
     AudiableAudioStreams[rxIter].store(concurrentStreams);
     if (concurrentStreams > 0) {
         if (!mRadioState[rxIter].mBypassEffects) {
+            // if FX are enabled, and we muxed any streams, eq the buffer now to apply the bandwidth simulation,
+            // but don't interfere with the effects.
+            mRadioState[rxIter].vhfFilter.transformFrame(mChannelBuffer, mChannelBuffer);
+
             float whiteNoiseGain = 0.0f;
             set_radio_effects(rxIter, crackleGain, whiteNoiseGain);
             if (!mix_effect(mRadioState[rxIter].Crackle, crackleGain * mRadioState[rxIter].Gain)) {
@@ -281,6 +275,8 @@ bool RadioSimulation::_process_radio(
     if (!mix_effect(mRadioState[rxIter].Click, fxClickGain * mRadioState[rxIter].Gain)) {
         mRadioState[rxIter].Click.reset();
     }
+    // now, finally, mix the channel buffer into the mixing buffer.
+    mix_buffers(mMixingBuffer, mChannelBuffer);
     return false;
 }
 
@@ -320,17 +316,10 @@ audio::SourceStatus RadioSimulation::getAudioFrame(audio::SampleType *bufferOut)
 
 void RadioSimulation::set_radio_effects(size_t rxIter, float crackleGain, float &whiteNoiseGain)
 {
-    if (freqIsHF(mRadioState[rxIter].Frequency)) {
-        whiteNoiseGain = fxHfWhiteNoiseGain;
+    whiteNoiseGain = fxWhiteNoiseGain;
+    if (whiteNoiseGain > 0.0f) {
         if (!mRadioState[rxIter].WhiteNoise) {
-            mRadioState[rxIter].WhiteNoise = std::make_shared<
-                    audio::RecordedSampleSource>(mResources->mHFWhiteNoise, true);
-        }
-    } else {
-        whiteNoiseGain = fxWhiteNoiseGain;
-        if (!mRadioState[rxIter].WhiteNoise) {
-            mRadioState[rxIter].WhiteNoise = std::make_shared<
-                    audio::RecordedSampleSource>(mResources->mWhiteNoise, true);
+            mRadioState[rxIter].WhiteNoise = std::make_shared<audio::PinkNoiseGenerator>();
         }
     }
     if (crackleGain > 0.0f) {
@@ -346,7 +335,7 @@ bool RadioSimulation::mix_effect(std::shared_ptr<ISampleSource> effect, float ga
     if (effect && gain > 0.0f) {
         auto rv = effect->getAudioFrame(mFetchBuffer);
         if (rv == audio::SourceStatus::OK) {
-            RadioSimulation::mix_buffers(mMixingBuffer, mFetchBuffer, gain);
+            RadioSimulation::mix_buffers(mChannelBuffer, mFetchBuffer, gain);
         } else {
             return false;
         }
@@ -358,6 +347,7 @@ RadioSimulation::~RadioSimulation()
 {
     _mm_free(mFetchBuffer);
     _mm_free(mMixingBuffer);
+    _mm_free(mChannelBuffer);
     delete[] AudiableAudioStreams;
 }
 
@@ -390,7 +380,6 @@ void RadioSimulation::resetRadioFx(unsigned int radio, bool except_click)
         mRadioState[radio].mLastRxCount = 0;
     }
     mRadioState[radio].BlockTone.reset();
-    mRadioState[radio].WhiteNoise.reset();
     mRadioState[radio].Crackle.reset();
 }
 

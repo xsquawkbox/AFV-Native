@@ -34,8 +34,6 @@
 #ifndef AFV_NATIVE_RADIOSIMULATION_H
 #define AFV_NATIVE_RADIOSIMULATION_H
 
-#include "afv-native/audio/VHFFilterSource.h"
-
 #include <memory>
 #include <unordered_map>
 
@@ -47,8 +45,10 @@
 #include "afv-native/audio/ISampleSink.h"
 #include "afv-native/audio/ISampleSource.h"
 #include "afv-native/audio/OutputMixer.h"
+#include "afv-native/audio/PinkNoiseGenerator.h"
 #include "afv-native/audio/SineToneSource.h"
 #include "afv-native/audio/SpeexPreprocessor.h"
+#include "afv-native/audio/VHFFilterSource.h"
 #include "afv-native/cryptodto/UDPChannel.h"
 #include "afv-native/event/EventCallbackTimer.h"
 
@@ -64,9 +64,10 @@ namespace afv_native {
             unsigned int Frequency;
             float Gain;
             std::shared_ptr<audio::RecordedSampleSource> Click;
-            std::shared_ptr<audio::RecordedSampleSource> WhiteNoise;
+            std::shared_ptr<audio::PinkNoiseGenerator> WhiteNoise;
             std::shared_ptr<audio::RecordedSampleSource> Crackle;
             std::shared_ptr<audio::SineToneSource> BlockTone;
+            audio::VHFFilterSource vhfFilter;
             int mLastRxCount;
             bool mBypassEffects;
         };
@@ -78,7 +79,6 @@ namespace afv_native {
          */
         struct CallsignMeta {
             std::shared_ptr<RemoteVoiceSource> source;
-            audio::VHFFilterSource voiceFilter;
             std::vector<dto::RxTransceiver> transceivers;
             CallsignMeta();
         };
@@ -161,7 +161,17 @@ namespace afv_native {
             unsigned int mTxRadio;
             std::atomic<uint32_t> mTxSequence;
             std::vector<RadioState> mRadioState;
+
+            /** mChannelBuffer is our single-radio/channel workbuffer - we do our per-channel fx mixing in here before
+             * we mix into the mMixingBuffer
+            */
+            audio::SampleType *mChannelBuffer;
+
+            /** mMixingBuffer is our aggregated mixing buffer for all radios/channels - when we're finished mixing and
+             * the final effects pass, we copy this to the output/target buffer.
+             */
             audio::SampleType *mMixingBuffer;
+
             audio::SampleType *mFetchBuffer;
 
             std::shared_ptr<VoiceCompressionSink> mVoiceSink;
