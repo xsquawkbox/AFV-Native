@@ -213,12 +213,7 @@ bool RadioSimulation::_process_radio(
                     crackleFactor = fmax(0.0f, crackleFactor);
                     crackleFactor = fmin(0.15f, crackleFactor);
 
-                    if (freqIsHF(mRadioState[rxIter].Frequency)) {
-                        voiceGain = 0.38f;
-                    } else {
-                        voiceGain = (1.0f - (3.7f * crackleFactor));
-                    }
-                    crackleGain += crackleFactor * 2.0f;
+                    crackleGain += crackleFactor;
                 }
                 break; // matched once.  dont' bother anymore.
             }

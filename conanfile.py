@@ -2,7 +2,7 @@ from conans import ConanFile, CMake, tools
 
 class AfvNativeConan(ConanFile):
     name = "AFV-Native"
-    version = "1.0.0"
+    version = "1.1.0"
     license = "3-Clause BSD"
     author = "Chris Collins <kuroneko@sysadninjas.net>"
     url = "https://github.com/xsquawkbox/AFV-Native"
@@ -13,11 +13,13 @@ class AfvNativeConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "audio_library": ["portaudio", "soundio"],
+        "build_examples": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
         "audio_library": "portaudio",
+        "build_examples": False,
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,
@@ -30,7 +32,7 @@ class AfvNativeConan(ConanFile):
     requires = [
         "msgpack/[~3.2.0]@bincrafters/stable",
         "jsonformoderncpp/[~3.7.0]@vthiery/stable",
-        "openssl/1.1.1d",
+        "openssl/1.1.1e",
         "libcurl/[~7.68.0]",
         "libevent/[~2.1.11]",
         "libopus/1.3.1@xsquawkbox/devel",
@@ -38,8 +40,6 @@ class AfvNativeConan(ConanFile):
     ]
     build_requires = [
         "gtest/[~1.8.1]",
-        "glew/2.2.0rc2@xsquawkbox/devel", # used for the test application.
-        "sdl2/[~2.0.9]@bincrafters/stable", # also used for the test application
     ]
     exports_sources = [
         "docs/*",
@@ -77,6 +77,11 @@ class AfvNativeConan(ConanFile):
         elif self.options.audio_library == "portaudio":
             self.requires("portaudio/v190600.20161030@xsquawkbox/stable")
 
+    def build_requirements(self):
+        if self.options.build_examples:
+            self.build_requires("glew/2.2.0rc2@xsquawkbox/devel")
+            self.build_requires("sdl2/[~2.0.9]@bincrafters/stable")
+
     def source(self):
         pass
 
@@ -84,6 +89,7 @@ class AfvNativeConan(ConanFile):
         cmake = CMake(self)
         cmake.configure(source_folder=".")
         cmake.definitions["AFV_NATIVE_AUDIO_LIBRARY"] = self.options.audio_library
+        cmake.definitions["BUILD_EXAMPLES"] = self.options.build_examples
         return cmake
 
     def build(self):

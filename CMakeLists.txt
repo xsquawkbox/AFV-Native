@@ -3,6 +3,8 @@ project(afv_native LANGUAGES CXX)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+option(BUILD_EXAMPLES "Build Example Programs (requires SDL)" OFF)
+
 if(MSVC)
 	if(NOT DEFINED CONAN_LINK_RUNTIME AND DEFINED CONAN_SETTINGS_COMPILER_RUNTIME)
 		message(WARNING "Forcing MSVC runtime based on conan profile")
@@ -63,6 +65,7 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/audio/ISampleSource.h
 		include/afv-native/audio/ISampleStorage.h
 		include/afv-native/audio/OutputMixer.h
+		include/afv-native/audio/PinkNoiseGenerator.h
 		include/afv-native/audio/RecordedSampleSource.h
 		include/afv-native/audio/SineToneSource.h
 		include/afv-native/audio/SinkFrameSizeAdjuster.h
@@ -129,7 +132,17 @@ add_library(afv_native
         src/util/base64.cpp
 		src/util/monotime.cpp
 		${AFV_NATIVE_AUDIO_SOURCES}
-		include/afv-native/audio/PinkNoiseGenerator.h)
+		extern/simpleSource/SimpleComp.cpp
+		extern/simpleSource/SimpleComp.h
+		extern/simpleSource/SimpleEnvelope.cpp
+		extern/simpleSource/SimpleEnvelope.h
+		extern/simpleSource/SimpleGain.h
+		extern/simpleSource/SimpleGate.cpp
+		extern/simpleSource/SimpleGate.h
+		extern/simpleSource/SimpleHeader.h
+		extern/simpleSource/SimpleLimit.cpp
+		extern/simpleSource/SimpleLimit.h
+		)
 target_link_libraries(afv_native
         PUBLIC
         CONAN_PKG::openssl
@@ -141,8 +154,11 @@ target_link_libraries(afv_native
 		CONAN_PKG::speexdsp
 		${AFV_NATIVE_AUDIO_LIBRARIES})
 target_include_directories(afv_native
-		PRIVATE ${CMAKE_SOURCE_DIR}/extern/cpp-jwt/include
-        PUBLIC ${CMAKE_SOURCE_DIR}/include)
+		PRIVATE
+		${CMAKE_SOURCE_DIR}/extern/cpp-jwt/include
+		${CMAKE_SOURCE_DIR}/extern/simpleSource
+		PUBLIC
+		${CMAKE_SOURCE_DIR}/include)
 
 if(MSVC)
 	# I hate to do this this way, but we must force MSVC to define the standard math macros whereever the afv headers
@@ -168,53 +184,60 @@ target_link_libraries(afv_native_test
 gtest_discover_tests(afv_native_test
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(audiotest
-        examples/audiotest/main.cpp)
-target_link_libraries(audiotest
-        afv_native)
+if(BUILD_EXAMPLES)
+	add_executable(audiotest
+			examples/audiotest/main.cpp)
+	target_link_libraries(audiotest
+			afv_native)
 
-add_executable(
-		testclient
-        examples/testclient/main.cpp
-        examples/testclient/TestClient.cpp
-        examples/testclient/TestClient.h
-		extern/imgui/imgui.cpp
-		extern/imgui/imgui_draw.cpp
-		extern/imgui/imgui_widgets.cpp
-		extern/imgui/imgui_internal.h
-		extern/imgui/imgui_demo.cpp
-		extern/imgui/imconfig.h
-		extern/imgui/imgui.h
-		extern/imgui/misc/cpp/imgui_stdlib.cpp
-		extern/imgui/misc/cpp/imgui_stdlib.h
-		extern/imgui/examples/imgui_impl_opengl3.cpp
-		extern/imgui/examples/imgui_impl_opengl3.h
-		extern/imgui/examples/imgui_impl_sdl.cpp
-		extern/imgui/examples/imgui_impl_sdl.h
-		)
-target_include_directories(
-		testclient
-		PRIVATE
-		${CMAKE_SOURCE_DIR}/extern/imgui
-		${CMAKE_SOURCE_DIR}/extern/imgui/examples
-		${CMAKE_SOURCE_DIR}/extern/imgui/misc/cpp
-		)
-target_compile_definitions(testclient
-		PRIVATE
-		IMGUI_IMPL_OPENGL_LOADER_GLEW=1)
-target_link_libraries(testclient
-		afv_native
-		CONAN_PKG::libevent
-		CONAN_PKG::sdl2
-		CONAN_PKG::glew)
+	add_executable(dsptest
+			examples/dsptest/main.cpp)
+	target_link_libraries(dsptest
+			afv_native)
 
-install(TARGETS afv_native
-		RUNTIME DESTINATION bin
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-		)
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
-		DESTINATION "." # target directory
-		FILES_MATCHING # install only matched files
-		PATTERN "*.h" # select header files
-		)
+	add_executable(
+			testclient
+			examples/testclient/main.cpp
+			examples/testclient/TestClient.cpp
+			examples/testclient/TestClient.h
+			extern/imgui/imgui.cpp
+			extern/imgui/imgui_draw.cpp
+			extern/imgui/imgui_widgets.cpp
+			extern/imgui/imgui_internal.h
+			extern/imgui/imgui_demo.cpp
+			extern/imgui/imconfig.h
+			extern/imgui/imgui.h
+			extern/imgui/misc/cpp/imgui_stdlib.cpp
+			extern/imgui/misc/cpp/imgui_stdlib.h
+			extern/imgui/examples/imgui_impl_opengl3.cpp
+			extern/imgui/examples/imgui_impl_opengl3.h
+			extern/imgui/examples/imgui_impl_sdl.cpp
+			extern/imgui/examples/imgui_impl_sdl.h
+			)
+	target_include_directories(
+			testclient
+			PRIVATE
+			${CMAKE_SOURCE_DIR}/extern/imgui
+			${CMAKE_SOURCE_DIR}/extern/imgui/examples
+			${CMAKE_SOURCE_DIR}/extern/imgui/misc/cpp
+			)
+	target_compile_definitions(testclient
+			PRIVATE
+			IMGUI_IMPL_OPENGL_LOADER_GLEW=1)
+	target_link_libraries(testclient
+			afv_native
+			CONAN_PKG::libevent
+			CONAN_PKG::sdl2
+			CONAN_PKG::glew)
+
+	install(TARGETS afv_native
+			RUNTIME DESTINATION bin
+			LIBRARY DESTINATION lib
+			ARCHIVE DESTINATION lib
+			)
+	install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
+			DESTINATION "." # target directory
+			FILES_MATCHING # install only matched files
+			PATTERN "*.h" # select header files
+			)
+endif() # BUILD_EXAMPLES

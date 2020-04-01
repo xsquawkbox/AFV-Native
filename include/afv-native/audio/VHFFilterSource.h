@@ -42,6 +42,7 @@
 
 #include <afv-native/audio/BiQuadFilter.h>
 #include <afv-native/audio/ISampleSource.h>
+#include "SimpleComp.h"
 
 namespace afv_native {
     namespace audio {
@@ -55,10 +56,18 @@ namespace afv_native {
         class VHFFilterSource {
         public:
             explicit VHFFilterSource():
+                compressor(),
                 highPass(BiQuadFilter::highPassFilter(450.0f, 1.0f)),
                 lowPass(BiQuadFilter::lowPassFilter(3000.0f, 1.0f)),
                 peakingEq(BiQuadFilter::peakingEqFilter(2200.0f, 0.25f, 13.0f))
             {
+                compressor.setSampleRate(sampleRateHz);
+                compressor.setAttack(5.0);
+                compressor.setRelease(10.0);
+                compressor.setThresh(16);
+                compressor.setRatio(6);
+                compressor.initRuntime();
+                compressorPostGain = pow(10.0f, (-5.5/20.0));
             }
 
             virtual ~VHFFilterSource() = default;
@@ -69,9 +78,12 @@ namespace afv_native {
              */
             void transformFrame(SampleType *bufferOut, SampleType const bufferIn[]) {
                 SampleType s = 0;
+                double sl, sr;
                 for (unsigned i = 0; i < frameSizeSamples; i++) {
-                    s = bufferIn[i];
-                    s = highPass.TransformOne(s);
+                    sl = bufferIn[i];
+                    sr = sl;
+                    compressor.process(sl, sr);
+                    s = highPass.TransformOne(sl * compressorPostGain);
                     s = peakingEq.TransformOne(s);
                     s = lowPass.TransformOne(s);
                     bufferOut[i] = s;
@@ -79,6 +91,8 @@ namespace afv_native {
             }
 
         protected:
+            chunkware_simple::SimpleComp    compressor;
+            float compressorPostGain;
             BiQuadFilter highPass;
             BiQuadFilter peakingEq;
             BiQuadFilter lowPass;
