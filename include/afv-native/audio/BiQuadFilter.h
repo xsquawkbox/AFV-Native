@@ -169,15 +169,6 @@ namespace afv_native {
                         a * ((a + 1.0f) + (a - 1.0f) * cosw0 - 2.0f * sqrt(a) * alpha));
             }
 
-            /** the pinkNoiseFilter transforms whitenoise into pink noise.
-             *
-             * It's based on the coefficients from moc.regnimmu@regnimmu on musicdsp.org
-             */
-            static constexpr BiQuadFilter pinkNoiseFilter() {
-                return {1.0f, -1.80116083982126f, 0.80257737639225f,
-                        0.04957526213389f, -0.06305581334498f, 0.01483220320740f};
-            }
-
         protected:
             float mA0, mA1, mA2;
             float mB0, mB1, mB2;
