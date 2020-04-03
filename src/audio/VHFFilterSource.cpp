@@ -1,4 +1,4 @@
-/* audio/VHFFilterSource.h
+/* audio/VHFFilterSource.cpp
  *
  * This file is part of AFV-Native.
  *
@@ -31,46 +31,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef AFV_NATIVE_VHFFILTERSOURCE_H
-#define AFV_NATIVE_VHFFILTERSOURCE_H
+#include "afv-native/audio/VHFFilterSource.h"
+#include <SimpleComp.h>
 
-#include <memory>
+using namespace afv_native::audio;
 
-#include <afv-native/audio/BiQuadFilter.h>
-#include <afv-native/audio/ISampleSource.h>
-
-namespace chunkware_simple {
-    class SimpleComp;
+VHFFilterSource::VHFFilterSource():
+        compressor(new chunkware_simple::SimpleComp()),
+        highPass(BiQuadFilter::highPassFilter(450.0f, 1.0f)),
+        lowPass(BiQuadFilter::lowPassFilter(3000.0f, 1.0f)),
+        peakingEq(BiQuadFilter::peakingEqFilter(2200.0f, 0.25f, 13.0f))
+{
+    compressor->setSampleRate(sampleRateHz);
+    compressor->setAttack(5.0);
+    compressor->setRelease(10.0);
+    compressor->setThresh(16);
+    compressor->setRatio(6);
+    compressor->initRuntime();
+    compressorPostGain = pow(10.0f, (-5.5/20.0));
 }
 
-namespace afv_native {
-    namespace audio {
-        /** VHFFilterSource implements the three filters we use to simulate the limited bandwidth of an airband VHF radio.
-         *
-         * If you want a more generic filter wrapper, look at FilterSource.
-         *
-         * @note VHFFilterSource is defined inline and staticly to encourage the compiler to inline and unroll/vectorise as
-         *       much as possible.  Because we run these on every incoming sample, we actually want it to be fairly fast.
-         */
-        class VHFFilterSource {
-        public:
-            explicit VHFFilterSource();
-            virtual ~VHFFilterSource();
+VHFFilterSource::~VHFFilterSource()
+{
+    delete compressor;
+};
 
-            /** transformFrame lets use apply this filter to a normal buffer, without following the sink/source flow.
-             *
-             * It always performs a copy of the data from In to Out at the very least.
-             */
-            void transformFrame(SampleType *bufferOut, SampleType const bufferIn[]);
-
-        protected:
-            chunkware_simple::SimpleComp *compressor;
-            float compressorPostGain;
-            BiQuadFilter highPass;
-            BiQuadFilter peakingEq;
-            BiQuadFilter lowPass;
-        };
+/** transformFrame lets use apply this filter to a normal buffer, without following the sink/source flow.
+ *
+ * It always performs a copy of the data from In to Out at the very least.
+ */
+void VHFFilterSource::transformFrame(SampleType *bufferOut, SampleType const bufferIn[]) {
+    SampleType s = 0;
+    double sl, sr;
+    for (unsigned i = 0; i < frameSizeSamples; i++) {
+        sl = bufferIn[i];
+        sr = sl;
+        compressor->process(sl, sr);
+        s = highPass.TransformOne(sl * compressorPostGain);
+        s = peakingEq.TransformOne(s);
+        s = lowPass.TransformOne(s);
+        bufferOut[i] = s;
     }
 }
-
-#endif //AFV_NATIVE_VHFFILTERSOURCE_H

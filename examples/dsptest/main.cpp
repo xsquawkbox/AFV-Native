@@ -35,7 +35,7 @@ main(int argc, char **argv)
     }
     auto deviceId = allOutputDevs.begin()->second.id;
 
-    auto white = std::make_shared<audio::WhiteNoiseGenerator>();
+    auto white = std::make_shared<audio::WhiteNoiseGenerator>(0.7);
     {
         LOG("dsptest", "creating audio device");
         auto soundDevice = audio::AudioDevice::makeDevice(
@@ -52,7 +52,7 @@ main(int argc, char **argv)
         soundDevice.reset();
     }
 
-    auto pink = std::make_shared<audio::PinkNoiseGenerator>();
+    auto pink = std::make_shared<audio::PinkNoiseGenerator>(0.7);
     {
         LOG("dsptest", "creating audio device");
         auto soundDevice = audio::AudioDevice::makeDevice(

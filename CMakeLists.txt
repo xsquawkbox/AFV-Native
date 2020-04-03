@@ -142,7 +142,7 @@ add_library(afv_native
 		extern/simpleSource/SimpleHeader.h
 		extern/simpleSource/SimpleLimit.cpp
 		extern/simpleSource/SimpleLimit.h
-		)
+		src/audio/VHFFilterSource.cpp)
 target_link_libraries(afv_native
         PUBLIC
         CONAN_PKG::openssl
@@ -229,15 +229,16 @@ if(BUILD_EXAMPLES)
 			CONAN_PKG::libevent
 			CONAN_PKG::sdl2
 			CONAN_PKG::glew)
-
-	install(TARGETS afv_native
-			RUNTIME DESTINATION bin
-			LIBRARY DESTINATION lib
-			ARCHIVE DESTINATION lib
-			)
-	install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
-			DESTINATION "." # target directory
-			FILES_MATCHING # install only matched files
-			PATTERN "*.h" # select header files
-			)
 endif() # BUILD_EXAMPLES
+
+install(TARGETS afv_native
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		)
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
+		DESTINATION "." # target directory
+		FILES_MATCHING # install only matched files
+		PATTERN "*.h" # select header files
+		)
