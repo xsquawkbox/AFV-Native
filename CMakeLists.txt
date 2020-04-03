@@ -4,6 +4,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 option(BUILD_EXAMPLES "Build Example Programs (requires SDL)" OFF)
+option(BUILD_TESTS "Build Test Suite (requires Google Test)" OFF)
 
 if(MSVC)
 	if(NOT DEFINED CONAN_LINK_RUNTIME AND DEFINED CONAN_SETTINGS_COMPILER_RUNTIME)
@@ -15,7 +16,9 @@ if(MSVC)
 endif(MSVC)
 
 set(CMAKE_CXX_STANDARD 14)
-enable_testing()
+if(BUILD_TESTS)
+  enable_testing()
+endif()
 
 set(AFV_NATIVE_AUDIO_LIBRARY "portaudio" CACHE STRING "Audio Library to use - either portaudio or soundio")
 if(AFV_NATIVE_AUDIO_LIBRARY MATCHES "portaudio")
@@ -166,23 +169,25 @@ if(MSVC)
 	target_compile_definitions(afv_native PUBLIC _USE_MATH_DEFINES)
 endif()
 
-include(GoogleTest)
-add_executable(
-        afv_native_test
-        test/main.cpp
-		test/audio/test_SinkFrameSizeAdapter.cpp
-		test/audio/test_SourceFrameSizeAdapter.cpp
-		test/cryptodto/test_ChannelConfig.cpp
-        test/cryptodto/test_SequenceTest.cpp
-		test/http/test_http_async.cpp
-		test/http/test_http_sync.cpp
-		test/util/test_base64.cpp
-)
-target_link_libraries(afv_native_test
-        CONAN_PKG::gtest
-        afv_native)
-gtest_discover_tests(afv_native_test
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+if(BUILD_TESTS)
+	include(GoogleTest)
+	add_executable(
+			afv_native_test
+			test/main.cpp
+			test/audio/test_SinkFrameSizeAdapter.cpp
+			test/audio/test_SourceFrameSizeAdapter.cpp
+			test/cryptodto/test_ChannelConfig.cpp
+			test/cryptodto/test_SequenceTest.cpp
+			test/http/test_http_async.cpp
+			test/http/test_http_sync.cpp
+			test/util/test_base64.cpp
+	)
+	target_link_libraries(afv_native_test
+			CONAN_PKG::gtest
+			afv_native)
+	gtest_discover_tests(afv_native_test
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 
 if(BUILD_EXAMPLES)
 	add_executable(audiotest

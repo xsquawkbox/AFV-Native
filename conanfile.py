@@ -14,12 +14,14 @@ class AfvNativeConan(ConanFile):
         "fPIC": [True, False],
         "audio_library": ["portaudio", "soundio"],
         "build_examples": [True, False],
+        "build_tests": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
         "audio_library": "portaudio",
         "build_examples": False,
+        "build_tests": False,
         "*:shared": False,
         "*:fPIC": True,
         "libcurl:with_openssl": True,
@@ -39,7 +41,6 @@ class AfvNativeConan(ConanFile):
         "speexdsp/1.2.0@xsquawkbox/devel",
     ]
     build_requires = [
-        "gtest/[~1.8.1]",
     ]
     exports_sources = [
         "docs/*",
@@ -81,8 +82,11 @@ class AfvNativeConan(ConanFile):
         if self.options.build_examples:
             self.build_requires("glew/2.2.0rc2@xsquawkbox/devel")
             self.build_requires("sdl2/[~2.0.9]@bincrafters/stable")
+        if self.options.build_tests:
+            self.build_requires("gtest/[~1.8.1]")
 
-    def source(self):
+
+def source(self):
         pass
 
     def _configure_cmake(self):
