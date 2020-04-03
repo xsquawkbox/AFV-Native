@@ -33,7 +33,9 @@
 #if _MSC_VER > 1000			// MS Visual Studio
 #define INLINE __forceinline	// forces inline
 #define NOMINMAX				// for standard library min(), max()
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES		// for math constants
+#endif
 #else						// other IDE's
 #define INLINE inline
 #endif
