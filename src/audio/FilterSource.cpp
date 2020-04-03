@@ -30,9 +30,12 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
 */
-#include <memory>
-#include <afv-native/audio/IFilter.h>
+
 #include "afv-native/audio/FilterSource.h"
+
+#include <memory>
+#include <cstring>
+#include "afv-native/audio/IFilter.h"
 
 using namespace ::afv_native::audio;
 using namespace ::std;
