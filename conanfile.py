@@ -85,8 +85,7 @@ class AfvNativeConan(ConanFile):
         if self.options.build_tests:
             self.build_requires("gtest/[~1.8.1]")
 
-
-def source(self):
+    def source(self):
         pass
 
     def _configure_cmake(self):
