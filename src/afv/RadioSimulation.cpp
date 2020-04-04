@@ -173,6 +173,21 @@ RadioSimulation::mix_buffers(audio::SampleType *src_dst, const audio::SampleType
     }
 }
 
+bool RadioSimulation::getTxActive(unsigned int radio) {
+    if (radio != mTxRadio) {
+        return false;
+    }
+    return mPtt.load();
+}
+
+bool
+RadioSimulation::getRxActive(unsigned int radio)
+{
+    std::lock_guard<std::mutex> radioStateGuard(mRadioStateLock);
+
+    return (mRadioState[radio].mLastRxCount > 0);
+}
+
 inline bool
 freqIsHF(unsigned int freq)
 {

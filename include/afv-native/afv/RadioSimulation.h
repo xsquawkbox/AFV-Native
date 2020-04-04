@@ -111,6 +111,9 @@ namespace afv_native {
             void setGain(unsigned int radio, float gain);
             void setTxRadio(unsigned int radio);
 
+            bool getTxActive(unsigned int radio);
+            bool getRxActive(unsigned int radio);
+
             void setPtt(bool pressed);
             void setUDPChannel(cryptodto::UDPChannel *newChannel);
 

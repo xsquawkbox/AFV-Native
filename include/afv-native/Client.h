@@ -222,6 +222,21 @@ namespace afv_native {
         std::shared_ptr<const afv::RadioSimulation> getRadioSimulation() const;
         std::shared_ptr<const audio::AudioDevice> getAudioDevice() const;
 
+        /** getRxActive returns if the nominated radio is currently Receiving voice, irrespective as to if it's audiable
+         * or not.
+         *
+         * @param radioNumber the number (starting from 0) of the radio to probe
+         * @return true if the radio would have voice to play, false otherwise.
+         */
+        bool getRxActive(unsigned int radioNumber);
+
+        /** getTxActive returns if the nominated radio is currently Transmitting voice.
+         *
+         * @param radioNumber the number (starting from 0) of the radio to probe
+         * @return true if the radio is transmitting from the mic, false otherwise.
+         */
+        bool getTxActive(unsigned int radioNumber);
+
     protected:
         struct ClientRadioState {
             int mCurrentFreq;
