@@ -46,7 +46,7 @@ SinkFrameSizeAdjuster::SinkFrameSizeAdjuster(
         mSinkBufferOffset(0)
 {
     const size_t bufferSize = frameSizeSamples * sizeof(SampleType);
-    mSinkBuffer = reinterpret_cast<SampleType *>(_mm_malloc(bufferSize, 16));
+    mSinkBuffer = new SampleType[bufferSize];
 	if (nullptr != mSinkBuffer) {
 		::memset(mSinkBuffer, 0, bufferSize);
 	}
@@ -54,7 +54,7 @@ SinkFrameSizeAdjuster::SinkFrameSizeAdjuster(
 
 SinkFrameSizeAdjuster::~SinkFrameSizeAdjuster()
 {
-    _mm_free(mSinkBuffer);
+    delete[] mSinkBuffer;
 }
 
 void SinkFrameSizeAdjuster::putAudioFrame(const SampleType *bufferIn)

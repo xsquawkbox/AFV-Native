@@ -34,7 +34,6 @@
 
 #include <cmath>
 #include <atomic>
-#include <xmmintrin.h>
 
 #include "afv-native/Log.h"
 #include "afv-native/afv/RadioSimulation.h"
@@ -86,15 +85,9 @@ RadioSimulation::RadioSimulation(
         mMaintenanceTimer(mEvBase, std::bind(&RadioSimulation::maintainIncomingStreams, this)),
         mVuMeter(300 / audio::frameLengthMs) // VU is a 300ms zero to peak response...
 {
-    mChannelBuffer = reinterpret_cast<audio::SampleType *>(_mm_malloc(
-            sizeof(audio::SampleType) * audio::frameSizeSamples,
-            16));
-    mMixingBuffer = reinterpret_cast<audio::SampleType *>(_mm_malloc(
-            sizeof(audio::SampleType) * audio::frameSizeSamples,
-            16));
-    mFetchBuffer = reinterpret_cast<audio::SampleType *>(_mm_malloc(
-            sizeof(audio::SampleType) * audio::frameSizeSamples,
-            16));
+    mChannelBuffer = new audio::SampleType[audio::frameSizeSamples];
+    mMixingBuffer = new audio::SampleType[audio::frameSizeSamples];
+    mFetchBuffer = new audio::SampleType[audio::frameSizeSamples];
     setUDPChannel(channel);
     mMaintenanceTimer.enable(maintenanceTimerIntervalMs);
     AudiableAudioStreams = new std::atomic<uint32_t>[radioCount];
@@ -343,9 +336,9 @@ bool RadioSimulation::mix_effect(std::shared_ptr<ISampleSource> effect, float ga
 
 RadioSimulation::~RadioSimulation()
 {
-    _mm_free(mFetchBuffer);
-    _mm_free(mMixingBuffer);
-    _mm_free(mChannelBuffer);
+    delete[] mFetchBuffer;
+    delete[] mMixingBuffer;
+    delete[] mChannelBuffer;
     delete[] AudiableAudioStreams;
 }
 

@@ -35,7 +35,6 @@
 
 #include <vector>
 #include <cstring>
-#include <xmmintrin.h>
 #include <speex/speex_resampler.h>
 
 using namespace afv_native::audio;
@@ -110,7 +109,7 @@ WavSampleStorage::WavSampleStorage(const AudioSampleData &srcdata):
             convertBuffer[i] = sampleFetch(sData, stride, i, channels);
         }
         mBufferSize = len * sampleRateHz / srcdata.getSampleRate();
-        mBuffer = reinterpret_cast<SampleType *>(_mm_malloc(mBufferSize * sizeof(SampleType), 16));
+        mBuffer = new SampleType[mBufferSize];
         int res;
         auto resampler = speex_resampler_init(1, srcdata.getSampleRate(), sampleRateHz, SPEEX_RESAMPLER_QUALITY_DESKTOP, &res);
         speex_resampler_skip_zeros(resampler);
@@ -121,7 +120,7 @@ WavSampleStorage::WavSampleStorage(const AudioSampleData &srcdata):
         speex_resampler_destroy(resampler);
     } else {
         mBufferSize = srcdata.getSampleCount();
-        mBuffer = reinterpret_cast<SampleType *>(_mm_malloc(srcdata.getSampleCount() * sizeof(SampleType), 16));
+        mBuffer = new SampleType[srcdata.getSampleCount()];
         for (auto i = 0; i < len; i++) {
             mBuffer[i] = sampleFetch(sData, stride, i, channels);
         }
@@ -130,7 +129,7 @@ WavSampleStorage::WavSampleStorage(const AudioSampleData &srcdata):
 
 WavSampleStorage::WavSampleStorage(const WavSampleStorage &copysrc)
 {
-    mBuffer = reinterpret_cast<SampleType *>(_mm_malloc(copysrc.mBufferSize * sizeof(SampleType), 16));
+    mBuffer = new SampleType[copysrc.mBufferSize];
     ::memcpy(mBuffer, copysrc.mBuffer, copysrc.mBufferSize * sizeof(SampleType));
     mBufferSize = copysrc.mBufferSize;
 }
@@ -146,7 +145,8 @@ WavSampleStorage::WavSampleStorage(WavSampleStorage &&movesrc) noexcept
 WavSampleStorage::~WavSampleStorage()
 {
     if (mBuffer) {
-        _mm_free(mBuffer);
+        delete[] mBuffer;
+        mBuffer = nullptr;
     }
 }
 
