@@ -37,6 +37,7 @@
 #include <forward_list>
 #include <memory>
 
+#include "afv-native/utility.h"
 #include "afv-native/audio/ISampleSource.h"
 #include "afv-native/audio/SourceStatus.h"
 
@@ -60,7 +61,7 @@ namespace afv_native {
 
             void setGain(float newGain);
 
-            SourceStatus getAudioFrame(SampleType *bufferOut) override;
+            SourceStatus getAudioFrame(SampleType * RESTRICT bufferOut) override;
         };
     }
 }

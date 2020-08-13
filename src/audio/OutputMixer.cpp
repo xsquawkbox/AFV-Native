@@ -36,13 +36,6 @@
 #include "afv-native/Log.h"
 #include "afv-native/audio/SourceStatus.h"
 
-#if defined(_MSC_VER)
-
-#include <intrin.h>
-
-#endif
-
-#include <xmmintrin.h>
 #include <cstring>
 
 using namespace afv_native::audio;
@@ -56,32 +49,22 @@ OutputMixer::~OutputMixer()
 }
 
 SourceStatus
-OutputMixer::getAudioFrame(SampleType *bufferOut)
+OutputMixer::getAudioFrame(SampleType * RESTRICT bufferOut)
 {
     SourceStatus src_rv;
     bool didMix = false;
     int i = 0;
-    __m128 srcReg;
-    __m128 dstReg;
-    __m128 volReg;
-    auto *intermediate_buffer = reinterpret_cast<SampleType *>(_mm_malloc(sizeof(SampleType)*frameSizeSamples, 16 ));
+
+    std::vector<SampleType> ibuf(frameSizeSamples, 0.0); // we must not touch ibuf directly. (due RESTICT in next line).
+    auto * intermediate_buffer = ibuf.data();
 
     ::memset(bufferOut, 0, sizeof(SampleType) * frameSizeSamples);
 
     for (auto &src_iter: mSources) {
         src_rv = src_iter.src->getAudioFrame(intermediate_buffer);
-        volReg = _mm_set_ps1(src_iter.gain);
         if (src_rv == SourceStatus::OK) {
             didMix = true;
-            i = 0;
-            for (; i < frameSizeSamples - 3; i += 4) {
-                srcReg = _mm_loadu_ps(bufferOut + i);
-                dstReg = _mm_load_ps(intermediate_buffer + i);
-                dstReg = _mm_mul_ps(dstReg, volReg);
-                srcReg = _mm_add_ps(srcReg, dstReg);
-                _mm_storeu_ps(bufferOut + i, srcReg);
-            }
-            for (; i < frameSizeSamples; i++) {
+            for (i = 0; i < frameSizeSamples; i++) {
                 bufferOut[i] += (src_iter.gain * intermediate_buffer[i]);
             }
         } else {
@@ -93,17 +76,9 @@ OutputMixer::getAudioFrame(SampleType *bufferOut)
         }
     }
     mSources.remove_if([](MixerSource ms) -> bool { return !ms.src; });
-    _mm_free(intermediate_buffer);
     // apply final volume adjustment.
     if (didMix) {
-        i = 0;
-        volReg = _mm_set_ps1(mGain);
-        for (; i < frameSizeSamples - 3; i += 4) {
-            srcReg = _mm_loadu_ps(bufferOut + i);
-            srcReg = _mm_mul_ps(srcReg, volReg);
-            _mm_storeu_ps(bufferOut + i, srcReg);
-        }
-        for (; i < frameSizeSamples; i++) {
+        for (i = 0; i < frameSizeSamples; i++) {
             bufferOut[i] *= mGain;
         }
     }
