@@ -34,6 +34,12 @@
 #ifndef AFV_NATIVE_UTILITY_H
 #define AFV_NATIVE_UTILITY_H
 
+/* RESTRICT should provide the same attribute specification as the C `restrict`
+ * keyword does.
+ *
+ * Because `restrict` itself is not standardised into C++, we need to know what
+ * the compiler's preferred keyword for it is.
+ */
 #define RESTRICT __restrict
 
 #endif //AFV_NATIVE_UTILITY_H
