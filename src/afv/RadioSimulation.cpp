@@ -153,22 +153,10 @@ void RadioSimulation::processCompressedFrame(std::vector<unsigned char> compress
     }
 }
 
-// NOTE:  this requires the source_dst buffer is aligned.
 void
-RadioSimulation::mix_buffers(audio::SampleType *src_dst, const audio::SampleType *src2, float src2_gain)
+RadioSimulation::mix_buffers(audio::SampleType * RESTRICT src_dst, const audio::SampleType * RESTRICT src2, float src2_gain)
 {
-    __m128 srcReg;
-    __m128 src2Reg;
-    __m128 volReg = _mm_set_ps1(src2_gain);
-    int i = 0;
-    for (; i < audio::frameSizeSamples - 3; i += 4) {
-        srcReg = _mm_load_ps(src_dst + i);
-        src2Reg = _mm_loadu_ps(src2 + i); // unaligned because the sampleCache is unaligned.  *sigh*.
-        src2Reg = _mm_mul_ps(src2Reg, volReg);
-        srcReg = _mm_add_ps(srcReg, src2Reg);
-        _mm_store_ps(src_dst + i, srcReg);
-    }
-    for (; i < audio::frameSizeSamples; i++) {
+    for (int i = 0; i < audio::frameSizeSamples; i++) {
         src_dst[i] += (src2_gain * src2[i]);
     }
 }

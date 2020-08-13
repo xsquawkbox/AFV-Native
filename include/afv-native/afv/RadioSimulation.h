@@ -37,6 +37,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "afv-native/utility.h"
 #include "afv-native/afv/EffectResources.h"
 #include "afv-native/afv/RemoteVoiceSource.h"
 #include "afv-native/afv/RollingAverage.h"
@@ -215,7 +216,7 @@ namespace afv_native {
              * @param src2 pointer to the origin of the samples to mix in.
              * @param src2_gain linear gain to apply to src2.
              */
-            static void mix_buffers(audio::SampleType *src_dst, const audio::SampleType *src2, float src2_gain = 1.0);
+            static void mix_buffers(audio::SampleType * RESTRICT src_dst, const audio::SampleType * RESTRICT src2, float src2_gain = 1.0);
         };
     }
 }

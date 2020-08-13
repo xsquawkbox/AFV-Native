@@ -95,7 +95,7 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/util/base64.h
 		include/afv-native/util/ChainedCallback.h
 		include/afv-native/util/monotime.h
-		)
+        include/afv-native/utility.h)
 add_library(afv_native
 		${AFV_NATIVE_HEADERS}
 		src/afv/APISession.cpp
