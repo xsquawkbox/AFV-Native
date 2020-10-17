@@ -3,8 +3,10 @@ project(afv_native LANGUAGES CXX)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(BUILD_EXAMPLES "Build Example Programs (requires SDL)" OFF)
 option(BUILD_TESTS "Build Test Suite (requires Google Test)" OFF)
+
 
 if(MSVC)
 	if(NOT DEFINED CONAN_LINK_RUNTIME AND DEFINED CONAN_SETTINGS_COMPILER_RUNTIME)
@@ -95,9 +97,8 @@ set(AFV_NATIVE_HEADERS
 		include/afv-native/util/base64.h
 		include/afv-native/util/ChainedCallback.h
 		include/afv-native/util/monotime.h
-        include/afv-native/utility.h)
-add_library(afv_native
-		${AFV_NATIVE_HEADERS}
+		include/afv-native/utility.h)
+set(AFV_NATIVE_SOURCES
 		src/afv/APISession.cpp
 		src/afv/EffectResources.cpp
 		src/afv/RadioSimulation.cpp
@@ -117,14 +118,15 @@ add_library(afv_native
 		src/audio/SinkFrameSizeAdjuster.cpp
 		src/audio/SourceFrameSizeAdjuster.cpp
 		src/audio/SpeexPreprocessor.cpp
+		src/audio/VHFFilterSource.cpp
 		src/audio/WavFile.cpp
 		src/audio/WavSampleStorage.cpp
 		src/core/Client.cpp
 		src/core/Log.cpp
-        src/cryptodto/Channel.cpp
-        src/cryptodto/SequenceTest.cpp
+		src/cryptodto/Channel.cpp
+		src/cryptodto/SequenceTest.cpp
 		src/cryptodto/UDPChannel.cpp
-        src/cryptodto/dto/ChannelConfig.cpp
+		src/cryptodto/dto/ChannelConfig.cpp
 		src/cryptodto/dto/Header.cpp
 		src/event/EventCallbackTimer.cpp
 		src/event/EventTimer.cpp
@@ -132,9 +134,10 @@ add_library(afv_native
 		src/http/TransferManager.cpp
 		src/http/Request.cpp
 		src/http/RESTRequest.cpp
-        src/util/base64.cpp
+		src/util/base64.cpp
 		src/util/monotime.cpp
-		${AFV_NATIVE_AUDIO_SOURCES}
+		${AFV_NATIVE_AUDIO_SOURCES})
+set(AFV_NATIVE_THIRDPARTY_SOURCES
 		extern/simpleSource/SimpleComp.cpp
 		extern/simpleSource/SimpleComp.h
 		extern/simpleSource/SimpleEnvelope.cpp
@@ -144,8 +147,17 @@ add_library(afv_native
 		extern/simpleSource/SimpleGate.h
 		extern/simpleSource/SimpleHeader.h
 		extern/simpleSource/SimpleLimit.cpp
-		extern/simpleSource/SimpleLimit.h
-		src/audio/VHFFilterSource.cpp)
+		extern/simpleSource/SimpleLimit.h)
+add_library(afv_native
+		${AFV_NATIVE_HEADERS}
+		${AFV_NATIVE_SOURCES}
+		${AFV_NATIVE_THIRDPARTY_SOURCES})
+
+# organise sources in generated projects.
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source" FILES ${AFV_NATIVE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/afv-native PREFIX "Headers" FILES ${AFV_NATIVE_HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/extern PREFIX "Third Party" FILES ${AFV_NATIVE_THIRDPARTY_SOURCES})
+
 target_link_libraries(afv_native
         PUBLIC
         CONAN_PKG::openssl
@@ -247,3 +259,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
 		FILES_MATCHING # install only matched files
 		PATTERN "*.h" # select header files
 		)
+
