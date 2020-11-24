@@ -142,6 +142,7 @@ SourceStatus RemoteVoiceSource::getAudioFrame(SampleType *bufferOut)
                     bufferOut,
                     frameSizeSamples,
                     false);
+            ::free(pktOut.data);
             break;
         default:
             LOG("instreambuffer", "Got Error return from the jitter buffer: %d", jitter_status);

@@ -53,6 +53,10 @@ namespace afv_native {
             WavSampleStorage(WavSampleStorage &&movesrc) noexcept;
             virtual ~WavSampleStorage();
 
+            WavSampleStorage &operator=(const WavSampleStorage &copySrc);
+            WavSampleStorage &operator=(WavSampleStorage &&copySrc) noexcept;
+
+
             SampleType *data() const override;
             size_t lengthInSamples() const override;
         };

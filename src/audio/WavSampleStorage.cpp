@@ -160,3 +160,26 @@ size_t WavSampleStorage::lengthInSamples() const
     return mBufferSize;
 }
 
+WavSampleStorage &WavSampleStorage::operator=(const WavSampleStorage &copySrc) {
+    if (mBufferSize != copySrc.mBufferSize) {
+        if (mBuffer) {
+            delete[] mBuffer;
+        }
+        mBuffer = new SampleType[copySrc.mBufferSize];
+        mBufferSize = copySrc.mBufferSize;
+    }
+    ::memcpy(mBuffer, copySrc.mBuffer, copySrc.mBufferSize * sizeof(SampleType));
+    return *this;
+}
+
+WavSampleStorage &WavSampleStorage::operator=(WavSampleStorage &&moveSrc) noexcept {
+    if (mBuffer) {
+        delete[] mBuffer;
+        mBufferSize = 0;
+    }
+    mBuffer = moveSrc.mBuffer;
+    mBufferSize = moveSrc.mBufferSize;
+    moveSrc.mBuffer = nullptr;
+    moveSrc.mBufferSize = 0;
+    return *this;
+}
