@@ -24,7 +24,7 @@ class AfvNativeConan(ConanFile):
         "build_tests": False,
         "*:shared": False,
         "*:fPIC": True,
-        "libcurl:with_openssl": True,
+        "libcurl:with_ssl": "openssl",
         "libevent:with_openssl": False,
         "libsoundio*:enable_jack": False,
         "libsoundio*:enable_pulseaudio": True,
@@ -66,10 +66,7 @@ class AfvNativeConan(ConanFile):
             self.copy("*.pdb", "lib", "bin")
 
     def configure(self):
-        if self.settings.os == 'Windows':
-            self.options['libcurl'].with_winssl = False
-        elif self.settings.os == 'Macos':
-            self.options['libcurl'].darwin_ssl = False
+        pass
 
     def requirements(self):
         if self.options.audio_library == "soundio":
