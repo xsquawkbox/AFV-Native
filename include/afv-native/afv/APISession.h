@@ -70,40 +70,8 @@ namespace afv_native {
         };
 
         class APISession {
-        protected:
-            struct event_base *mEvBase;
-            http::TransferManager &mTransferManager;
-        private:
-            APISessionState mState;
-        protected:
-            std::string mBaseURL;
-            std::string mUsername;
-            std::string mPassword;
-
-            std::string mBearerToken;
-
-            http::RESTRequest mAuthenticationRequest;
-
-            event::EventCallbackTimer mRefreshTokenTimer;
-
-            APISessionError mLastError;
-
-            http::RESTRequest mStationAliasRequest;
-            std::vector<dto::Station> mAliasedStations;
-
-            void _authenticationCallback(http::RESTRequest *req, bool success);
-            void _stationsCallback(http::RESTRequest *req, bool success);
-            void setState(APISessionState newState);
-            void raiseError(APISessionError error);
         public:
-            /** Callbacks registered against StateCallback will be called whenever
-             * the APISession changes state.
-             *
-             */
-            util::ChainedCallback<void(APISessionState)> StateCallback;
-            util::ChainedCallback<void(void)> AliasUpdateCallback;
-
-            APISession(event_base *evBase, http::TransferManager &tm, std::string baseUrl);
+            APISession(event_base *evBase, http::TransferManager &tm, std::string baseUrl, std::string clientName);
 
             const std::string &getUsername() const;
 
@@ -129,6 +97,37 @@ namespace afv_native {
 
             void updateStationAliases();
             std::vector<dto::Station> getStationAliases() const;
+
+            /** Callbacks registered against StateCallback will be called whenever
+             * the APISession changes state.
+            */
+            util::ChainedCallback<void(APISessionState)> StateCallback;
+            util::ChainedCallback<void(void)> AliasUpdateCallback;
+        protected:
+            void _authenticationCallback(http::RESTRequest *req, bool success);
+            void _stationsCallback(http::RESTRequest *req, bool success);
+            void setState(APISessionState newState);
+            void raiseError(APISessionError error);
+
+            struct event_base *mEvBase;
+            http::TransferManager &mTransferManager;
+            std::string mBaseURL;
+            std::string mUsername;
+            std::string mPassword;
+            std::string mClientName;
+
+            std::string mBearerToken;
+
+            http::RESTRequest mAuthenticationRequest;
+
+            event::EventCallbackTimer mRefreshTokenTimer;
+
+            APISessionError mLastError;
+
+            http::RESTRequest mStationAliasRequest;
+            std::vector<dto::Station> mAliasedStations;
+        private:
+            APISessionState mState;
         };
     }
 }

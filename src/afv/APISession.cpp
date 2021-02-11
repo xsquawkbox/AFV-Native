@@ -49,27 +49,28 @@ using namespace ::afv_native::afv;
 using namespace ::afv_native;
 using json = nlohmann::json;
 
-APISession::APISession(event_base *evBase, http::TransferManager &tm, std::string baseUrl):
+APISession::APISession(event_base *evBase, http::TransferManager &tm, std::string baseUrl, std::string clientName):
+        StateCallback(),
+        AliasUpdateCallback(),
         mEvBase(evBase),
         mTransferManager(tm),
-        mState(APISessionState::Disconnected),
         mBaseURL(std::move(baseUrl)),
         mUsername(),
         mPassword(),
+        mClientName(std::move(clientName)),
         mBearerToken(),
         mAuthenticationRequest(mBaseURL + "/api/v1/auth", http::Method::POST, json()),
         mRefreshTokenTimer(mEvBase, std::bind(&APISession::Connect, this)),
         mLastError(APISessionError::NoError),
         mStationAliasRequest(mBaseURL + "/api/v1/stations/aliased", http::Method::GET, nullptr),
-        StateCallback(),
-        AliasUpdateCallback()
+        mState(APISessionState::Disconnected)
 {
 }
 
 void
 APISession::Connect()
 {
-    dto::AuthRequest ar(mUsername, mPassword);
+    dto::AuthRequest ar(mUsername, mPassword, mClientName);
 
     /* start the authentication request */
     mAuthenticationRequest.reset();

@@ -51,7 +51,7 @@ Client::Client(
         mFxRes(std::make_shared<afv::EffectResources>(resourceBasePath)),
         mEvBase(evBase),
         mTransferManager(mEvBase),
-        mAPISession(mEvBase, mTransferManager, std::move(baseUrl)),
+        mAPISession(mEvBase, mTransferManager, std::move(baseUrl), clientName),
         mVoiceSession(mAPISession),
         mRadioSim(std::make_shared<afv::RadioSimulation>(mEvBase, mFxRes, &mVoiceSession.getUDPChannel(), numRadios)),
         mAudioDevice(),

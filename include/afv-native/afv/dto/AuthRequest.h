@@ -44,13 +44,13 @@ namespace afv_native {
             class AuthRequest {
             public:
                 AuthRequest();
-                AuthRequest(std::string username, std::string password);
+                AuthRequest(std::string username, std::string password, std::string client="AFV-Native");
                 AuthRequest(const AuthRequest &cpysrc);
                 AuthRequest(AuthRequest &&movesrc) noexcept;
 
                 std::string Username;
                 std::string Password;
-                std::string NetworkVersion;
+                std::string Client;
             };
 
             void from_json(const nlohmann::json &j, AuthRequest &ar);

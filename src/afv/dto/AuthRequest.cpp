@@ -42,28 +42,28 @@ using json = nlohmann::json;
 AuthRequest::AuthRequest():
     Username(),
     Password(),
-    NetworkVersion(afv_native::afv::NetworkVersion)
+    Client("AFV-Native")
 {
 }
 
-AuthRequest::AuthRequest(string username, string password):
+AuthRequest::AuthRequest(string username, string password, string client):
     Username(std::move(username)),
     Password(std::move(password)),
-    NetworkVersion(afv_native::afv::NetworkVersion)
+    Client(std::move(client))
 {
 }
 
 AuthRequest::AuthRequest(const AuthRequest &cpysrc):
     Username(cpysrc.Username),
     Password(cpysrc.Password),
-    NetworkVersion(cpysrc.NetworkVersion)
+    Client(cpysrc.Client)
 {
 }
 
 AuthRequest::AuthRequest(AuthRequest &&movesrc) noexcept:
     Username(std::move(movesrc.Username)),
     Password(std::move(movesrc.Password)),
-    NetworkVersion(std::move(movesrc.NetworkVersion))
+    Client(std::move(movesrc.Client))
 {
 }
 
@@ -72,15 +72,15 @@ afv_native::afv::dto::from_json(const json &j, AuthRequest &ar)
 {
     j.at("username").get_to(ar.Username);
     j.at("password").get_to(ar.Password);
-    j.at("networkversion").get_to(ar.NetworkVersion);
+    j.at("client").get_to(ar.Client);
 }
 
 void
 afv_native::afv::dto::to_json(json &j, const AuthRequest &ar)
 {
     j = json{
-        {"username",       ar.Username},
-        {"password",       ar.Password},
-        {"networkversion", ar.NetworkVersion},
+        {"username", ar.Username},
+        {"password", ar.Password},
+        {"client",   ar.Client},
     };
 }
