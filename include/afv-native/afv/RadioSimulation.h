@@ -105,6 +105,9 @@ namespace afv_native {
                     cryptodto::UDPChannel *channel,
                     unsigned int radioCount);
             virtual ~RadioSimulation();
+
+            RadioSimulation(const RadioSimulation &copySrc) = delete;
+
             void rxVoicePacket(const afv::dto::AudioRxOnTransceivers &pkt);
 
             void setCallsign(const std::string &newCallsign);

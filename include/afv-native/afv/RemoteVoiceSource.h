@@ -77,6 +77,7 @@ namespace afv_native {
         public:
             RemoteVoiceSource();
             virtual ~RemoteVoiceSource();
+            RemoteVoiceSource(const RemoteVoiceSource &copySrc) = delete;
 
             void appendAudioDTO(const dto::IAudio &audio);
             audio::SourceStatus getAudioFrame(audio::SampleType *bufferOut) override;
