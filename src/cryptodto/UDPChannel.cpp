@@ -98,8 +98,8 @@ void UDPChannel::readCallback()
     int dgSize = ::recv(
             mUDPSocket, reinterpret_cast<char *>(mDatagramRxBuffer), maxPermittedDatagramSize, 0);
     if (dgSize < 0) {
-        mLastErrno = errno;
-        LOG("udpchannel:readCallback", "recv error: %s", ::strerror(errno));
+        mLastErrno = evutil_socket_geterror(mUDPSocket);
+        LOG("udpchannel:readCallback", "recv error: %s", evutil_socket_error_to_string(mLastErrno));
         return;
     }
     if (dgSize > maxPermittedDatagramSize) {
@@ -172,8 +172,8 @@ bool UDPChannel::open()
     if (!evutil_parse_sockaddr_port(mAddress.c_str(), reinterpret_cast<struct sockaddr *>(&saddr), &saddr_len)) {
         mUDPSocket = ::socket(saddr.ss_family, SOCK_DGRAM, 0);
         if (mUDPSocket < 0) {
-            mLastErrno = errno;
-            LOG("udpchannel", "Couldn't create UDP socket: %s", strerror(errno));
+            mLastErrno = EVUTIL_SOCKET_ERROR();
+            LOG("udpchannel", "Couldn't create UDP socket: %s", evutil_socket_error_to_string(errno));
             close();
             return false;
         }
@@ -182,8 +182,8 @@ bool UDPChannel::open()
         if (saddr.ss_family == AF_INET6) {
             struct sockaddr_in6 baddr = {AF_INET6, 0, 0, IN6ADDR_ANY_INIT, 0,};
             if (::bind(mUDPSocket, reinterpret_cast<struct sockaddr *>(&baddr), sizeof(baddr))) {
-                mLastErrno = errno;
-                LOG("udpchannel", "couldn't bind IPv6 port: %s", strerror(errno));
+                mLastErrno = evutil_socket_geterror(mUDPSocket);
+                LOG("udpchannel", "couldn't bind IPv6 port: %s", evutil_socket_error_to_string(errno));
                 close();
                 return false;
             }
@@ -191,15 +191,15 @@ bool UDPChannel::open()
             // IPV4.
             struct sockaddr_in baddr = {AF_INET, 0, INADDR_ANY,};
             if (::bind(mUDPSocket, reinterpret_cast<struct sockaddr *>(&baddr), sizeof(baddr))) {
-                mLastErrno = errno;
-                LOG("udpchannel", "couldn't bind IPv4 port: %s", strerror(errno));
+                mLastErrno = evutil_socket_geterror(mUDPSocket);
+                LOG("udpchannel", "couldn't bind IPv4 port: %s", evutil_socket_error_to_string(errno));
                 close();
                 return false;
             }
         }
         if (::connect(mUDPSocket, reinterpret_cast<struct sockaddr *>(&saddr), saddr_len)) {
-            mLastErrno = errno;
-            LOG("udpchannel", "couldn't connect to endpoint address \"%s\": %s", mAddress.c_str(), strerror(errno));
+            mLastErrno = evutil_socket_geterror(mUDPSocket);
+            LOG("udpchannel", "couldn't connect to endpoint address \"%s\": %s", mAddress.c_str(), evutil_socket_error_to_string(errno));
             close();
             return false;
         }

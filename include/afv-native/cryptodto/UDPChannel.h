@@ -111,7 +111,7 @@ namespace afv_native {
                         if (errno == EWOULDBLOCK) {
                             LOG("udpchannel", "UDP packet dropped on send due to TxBuffer being full");
                         } else {
-                            LOG("udpchannel", "error sending datagram: %s", strerror(errno));
+                            LOG("udpchannel", "error sending datagram: %s", evutil_socket_error_to_string(evutil_socket_geterror(mUDPSocket)));
                         }
                     } else if (sent < dgBuffer.size()) {
                         LOG("udpchannel", "short write sending datagram - sent %d of %d bytes", send, dgBuffer.size());
