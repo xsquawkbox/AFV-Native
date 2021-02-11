@@ -22,6 +22,8 @@ if(BUILD_TESTS)
   enable_testing()
 endif()
 
+add_subdirectory(extern/speexdsp)
+
 set(AFV_NATIVE_AUDIO_LIBRARY "portaudio" CACHE STRING "Audio Library to use - either portaudio or soundio")
 if(AFV_NATIVE_AUDIO_LIBRARY MATCHES "portaudio")
 	set(AFV_NATIVE_AUDIO_SOURCES
@@ -166,7 +168,7 @@ target_link_libraries(afv_native
         CONAN_PKG::libcurl
         CONAN_PKG::libevent
         CONAN_PKG::libopus
-		CONAN_PKG::speexdsp
+		speexdsp
 		${AFV_NATIVE_AUDIO_LIBRARIES})
 target_include_directories(afv_native
 		PRIVATE

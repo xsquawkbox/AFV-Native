@@ -38,7 +38,6 @@ class AfvNativeConan(ConanFile):
         "libcurl/[~7.68.0]",
         "libevent/[~2.1.11]",
         "libopus/1.3.1@xsquawkbox/devel",
-        "speexdsp/1.2.0@xsquawkbox/devel",
     ]
     build_requires = [
     ]
