@@ -34,9 +34,9 @@ class AfvNativeConan(ConanFile):
     requires = [
         "msgpack/[~3.2.0]@bincrafters/stable",
         "jsonformoderncpp/[~3.7.0]@vthiery/stable",
-        "openssl/1.1.1e",
-        "libcurl/[~7.68.0]",
-        "libevent/[~2.1.11]",
+        "openssl/1.1.1i",
+        "libcurl/[~7.74.0]",
+        "libevent/[~2.1.12]",
         "libopus/1.3.1@xsquawkbox/devel",
     ]
     build_requires = [
