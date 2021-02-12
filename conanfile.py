@@ -100,6 +100,6 @@ class AfvNativeConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libs = ["afv_native"]
+        self.cpp_info.libs = ["afv_native", "speexdsp"]
         if self.settings.compiler == 'Visual Studio':
             self.cpp_info.defines += ["_USE_MATH_DEFINES"]

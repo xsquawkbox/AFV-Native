@@ -161,6 +161,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/afv-native PREFIX "Headers
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/extern PREFIX "Third Party" FILES ${AFV_NATIVE_THIRDPARTY_SOURCES})
 
 target_link_libraries(afv_native
+		PRIVATE
+		speexdsp
         PUBLIC
         CONAN_PKG::openssl
         CONAN_PKG::msgpack
@@ -168,7 +170,7 @@ target_link_libraries(afv_native
         CONAN_PKG::libcurl
         CONAN_PKG::libevent
         CONAN_PKG::libopus
-		speexdsp
+
 		${AFV_NATIVE_AUDIO_LIBRARIES})
 target_include_directories(afv_native
 		PRIVATE
@@ -256,8 +258,8 @@ install(TARGETS afv_native
 		ARCHIVE DESTINATION lib
 		)
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include" # source directory
-		DESTINATION "." # target directory
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include" # source directory
+		DESTINATION "speex" # target directory
 		FILES_MATCHING # install only matched files
 		PATTERN "*.h" # select header files
 		)
