@@ -35,7 +35,6 @@
 #define AFV_NATIVE_REMOTEVOICESOURCE_H
 
 #include <mutex>
-#include <speex/speex_jitter.h>
 #include <opus/opus.h>
 
 #include "afv-native/afv/dto/interfaces/IAudio.h"
@@ -43,6 +42,12 @@
 #include "afv-native/audio/ISampleSource.h"
 #include "afv-native/audio/SourceStatus.h"
 #include "afv-native/util/monotime.h"
+
+/* From speexdsp - so we don't need the header.  (we handle the pointer opaquely here) */
+/* Generic adaptive jitter buffer state */
+struct JitterBuffer_;
+/* Generic adaptive jitter buffer state */
+typedef struct JitterBuffer_ JitterBuffer;
 
 namespace afv_native {
     namespace afv {

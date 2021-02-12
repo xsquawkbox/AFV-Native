@@ -40,6 +40,8 @@
 #include "afv-native/audio/audio_params.h"
 #include "afv-native/util/monotime.h"
 
+#include "speex/speex_jitter.h"
+
 using namespace afv_native::afv;
 using namespace afv_native::audio;
 using namespace afv_native;

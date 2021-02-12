@@ -34,6 +34,8 @@
 #include "afv-native/audio/SpeexPreprocessor.h"
 #include "afv-native/audio/audio_params.h"
 
+#include <speex/speex_preprocess.h>
+
 using namespace afv_native::audio;
 
 SpeexPreprocessor::SpeexPreprocessor(std::shared_ptr<ISampleSink> upstream):

@@ -35,9 +35,14 @@
 #define AFV_NATIVE_SPEEXPREPROCESSOR_H
 
 #include <memory>
-#include <speex/speex_preprocess.h>
 
 #include "afv-native/audio/ISampleSink.h"
+
+/* from speexdsp */
+/* State of the preprocessor (one per channel). Should never be accessed directly. */
+struct SpeexPreprocessState_;
+/* State of the preprocessor (one per channel). Should never be accessed directly. */
+typedef struct SpeexPreprocessState_ SpeexPreprocessState;
 
 namespace afv_native {
     namespace audio {
@@ -46,7 +51,7 @@ namespace afv_native {
             std::shared_ptr<ISampleSink> mUpstreamSink;
             SpeexPreprocessState *mPreprocessorState;
 
-            spx_int16_t mSpeexFrame[frameSizeSamples];
+            int16_t mSpeexFrame[frameSizeSamples];
             SampleType mOutputFrame[frameSizeSamples];
         public:
             explicit SpeexPreprocessor(std::shared_ptr<ISampleSink> upstream);
